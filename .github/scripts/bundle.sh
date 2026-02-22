@@ -36,7 +36,7 @@ cp /tmp/conmon/bin/conmon                          "${BUNDLE}/podman/"
 cp /tmp/netavark/netavark                          "${BUNDLE}/podman/"
 cp /tmp/aardvark-dns/aardvark-dns                  "${BUNDLE}/podman/"
 cp /tmp/slirp4netns/slirp4netns                    "${BUNDLE}/podman/"
-cp /tmp/fuse-overlayfs/builddir/fuse-overlayfs     "${BUNDLE}/podman/"
+cp /tmp/fuse-overlayfs/fuse-overlayfs               "${BUNDLE}/podman/"
 
 # contup.sh
 cp contup.sh "${BUNDLE}/"

@@ -1,0 +1,31 @@
+name: Verify
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime: [docker, podman]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: contup-amd64
+          path: artifacts
+
+      - name: Find tarball
+        run: .github/scripts/find-tarball.sh
+
+      - name: Verify contup ${{ matrix.runtime }}
+        run: sudo .github/scripts/verify-contup.sh "${{ env.TARBALL }}" "${{ matrix.runtime }}"

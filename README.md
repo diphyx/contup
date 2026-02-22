@@ -199,7 +199,7 @@ When run as a regular user, contup installs to:
 
 ### 🦭 Podman Stack
 
-> The `podman` binary is built as a static binary (`CGO_ENABLED=0`) with the API service included, managed via systemd socket activation.
+> The `podman` binary is built as a statically linked binary with the API service included, managed via systemd socket activation.
 
 | Binary           | Source                                                                                |
 | ---------------- | ------------------------------------------------------------------------------------- |

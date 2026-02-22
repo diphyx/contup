@@ -14,7 +14,8 @@ sudo apt-get install -y \
     libseccomp-dev libseccomp2 musl-tools \
     autoconf automake libtool \
     libcap-dev libsystemd-dev libyajl-dev go-md2man \
-    libglib2.0-dev libslirp-dev libfuse3-dev libnftables-dev protobuf-compiler
+    libglib2.0-dev libslirp-dev libfuse3-dev libnftables-dev protobuf-compiler \
+    libsqlite3-dev
 
 if [[ "$ARCH" == "arm64" ]]; then
     echo "  Installing arm64 cross-compile toolchain..."
@@ -39,7 +40,8 @@ PORTS
     sudo apt-get install -y \
         gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross \
         libseccomp-dev:arm64 libyajl-dev:arm64 libcap-dev:arm64 \
-        libglib2.0-dev:arm64 libslirp-dev:arm64 libfuse3-dev:arm64 libnftables-dev:arm64
+        libglib2.0-dev:arm64 libslirp-dev:arm64 libfuse3-dev:arm64 libnftables-dev:arm64 \
+        libsqlite3-dev:arm64
 fi
 
 echo "==> Setting build environment for ${ARCH}..."

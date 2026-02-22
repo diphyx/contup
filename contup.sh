@@ -6,7 +6,7 @@ set -euo pipefail
 # https://github.com/diphyx/contup
 
 CONTUP_VERSION="1.0.0"
-CONTUP_HASH="acbb284"
+CONTUP_HASH="df313f8"
 GITHUB_REPO="diphyx/contup"
 GITHUB_API="https://api.github.com/repos/${GITHUB_REPO}"
 
@@ -434,10 +434,11 @@ detect_mode() {
 fetch_latest_release() {
     local api_url="${GITHUB_API}/releases/latest"
     local tmp_file="/tmp/contup-release-$$.json"
-    curl -fsSL "$api_url" -o "$tmp_file" 2>/dev/null &
-    local pid=$!
-    spinner "$pid" "Fetching latest release..."
-    wait "$pid" || die "Failed to fetch latest release from GitHub"
+
+    print_info "Fetching latest release..." >&2
+    if ! curl -fsSL "$api_url" -o "$tmp_file"; then
+        die "Failed to fetch latest release from GitHub"
+    fi
     cat "$tmp_file"
     rm -f "$tmp_file"
 }
@@ -448,10 +449,10 @@ download_tarball() {
     local name
     name=$(basename "$dest")
 
-    curl -fsSL -o "$tmp_file" "$url" &
-    local pid=$!
-    spinner "$pid" "Downloading ${name}..."
-    wait "$pid" || die "Download failed: ${url}"
+    print_info "Downloading ${name}..." >&2
+    if ! curl -fsSL -o "$tmp_file" "$url"; then
+        die "Download failed: ${url}"
+    fi
 
     mv "$tmp_file" "$dest"
     print_ok "Downloaded ${name}"
@@ -710,8 +711,6 @@ EOF
 
 write_podman_systemd_user_unit() {
     mkdir -p "$SYSTEMD_DIR"
-
-    local runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 
     cat > "${SYSTEMD_DIR}/podman.socket" <<EOF
 [Unit]
@@ -1249,14 +1248,14 @@ cmd_install() {
 
         local tarball_name="contup-${ARCH}.tar.gz"
         local tarball_url
-        tarball_url=$(echo "$release_json" | grep -o "\"browser_download_url\": *\"[^\"]*${tarball_name}\"" | grep -o 'https://[^"]*')
+        tarball_url=$(echo "$release_json" | grep -o "\"browser_download_url\": *\"[^\"]*${tarball_name}\"" | grep -o 'https://[^"]*' || true)
 
         if [[ -z "$tarball_url" ]]; then
             die "No tarball found for architecture: ${ARCH}"
         fi
 
         local checksum_url
-        checksum_url=$(echo "$release_json" | grep -o '"browser_download_url": *"[^"]*checksums[^"]*"' | grep -o 'https://[^"]*')
+        checksum_url=$(echo "$release_json" | grep -o '"browser_download_url": *"[^"]*checksums[^"]*"' | grep -o 'https://[^"]*' || true)
 
         download_tarball "$tarball_url" "${TMPDIR_CONTUP}/${tarball_name}"
 
@@ -1543,7 +1542,7 @@ cmd_update() {
 
     local tarball_name="contup-${ARCH}.tar.gz"
     local tarball_url
-    tarball_url=$(echo "$release_json" | grep -o "\"browser_download_url\": *\"[^\"]*${tarball_name}\"" | grep -o 'https://[^"]*')
+    tarball_url=$(echo "$release_json" | grep -o "\"browser_download_url\": *\"[^\"]*${tarball_name}\"" | grep -o 'https://[^"]*' || true)
 
     if [[ -z "$tarball_url" ]]; then
         die "No tarball found for architecture: ${ARCH}"

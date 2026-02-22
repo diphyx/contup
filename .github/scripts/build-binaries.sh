@@ -124,10 +124,12 @@ CGO_ENABLED=0 GOOS=linux go build -mod=vendor \
 
 # crun
 echo "  Building crun..."
-download_source containers/crun "$CRUN_VERSION" /tmp/crun
-init_git_tag /tmp/crun "$CRUN_VERSION"
+curl -fSL -o /tmp/crun.tar.gz \
+    "https://github.com/containers/crun/releases/download/${CRUN_VERSION}/crun-${CRUN_VERSION}.tar.gz"
+mkdir -p /tmp/crun
+tar -xzf /tmp/crun.tar.gz --strip-components=1 -C /tmp/crun
+rm -f /tmp/crun.tar.gz
 cd /tmp/crun
-./autogen.sh
 configure_args="--enable-static"
 if [[ "${CC:-}" == *aarch64* ]]; then
     configure_args+=" --host=aarch64-linux-gnu"
@@ -174,24 +176,12 @@ echo "  Building fuse-overlayfs..."
 download_source containers/fuse-overlayfs "$FUSE_OVERLAYFS_VERSION" /tmp/fuse-overlayfs
 init_git_tag /tmp/fuse-overlayfs "$FUSE_OVERLAYFS_VERSION"
 cd /tmp/fuse-overlayfs
-meson_args="-Ddefault_library=static"
+./autogen.sh
+configure_args="CFLAGS=-static LDFLAGS=-static"
 if [[ "${CC:-}" == *aarch64* ]]; then
-    cat > /tmp/meson-cross-aarch64.ini <<'MESON_CROSS'
-[binaries]
-c = 'aarch64-linux-gnu-gcc'
-cpp = 'aarch64-linux-gnu-g++'
-strip = 'aarch64-linux-gnu-strip'
-pkgconfig = 'pkg-config'
-
-[host_machine]
-system = 'linux'
-cpu_family = 'aarch64'
-cpu = 'aarch64'
-endian = 'little'
-MESON_CROSS
-    meson_args+=" --cross-file /tmp/meson-cross-aarch64.ini"
+    configure_args+=" --host=aarch64-linux-gnu"
 fi
-meson setup builddir $meson_args
-ninja -C builddir
+./configure $configure_args
+make
 
 echo "==> All binaries built"

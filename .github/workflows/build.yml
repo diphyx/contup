@@ -45,6 +45,8 @@ jobs:
         run: .github/scripts/setup-env.sh "${{ matrix.arch }}"
 
       - name: Build binaries
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: .github/scripts/build-binaries.sh
 
       - name: Bundle tarball

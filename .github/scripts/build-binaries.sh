@@ -28,13 +28,18 @@ init_git_tag() {
 get_commit_sha() {
     local org_repo="$1" tag="$2"
     local ref_json sha type
+    local -a auth=()
 
-    ref_json=$(curl -fsSL "https://api.github.com/repos/${org_repo}/git/ref/tags/${tag}")
+    if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+        auth=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
+    fi
+
+    ref_json=$(curl -fsSL "${auth[@]}" "https://api.github.com/repos/${org_repo}/git/ref/tags/${tag}")
     sha=$(echo "$ref_json" | grep -o '"sha":"[^"]*"' | head -1 | cut -d'"' -f4)
     type=$(echo "$ref_json" | grep -o '"type":"[^"]*"' | head -1 | cut -d'"' -f4)
 
     if [[ "$type" == "tag" ]]; then
-        sha=$(curl -fsSL "https://api.github.com/repos/${org_repo}/git/tags/${sha}" \
+        sha=$(curl -fsSL "${auth[@]}" "https://api.github.com/repos/${org_repo}/git/tags/${sha}" \
             | grep -o '"sha":"[^"]*"' | tail -1 | cut -d'"' -f4)
     fi
 
@@ -48,7 +53,7 @@ echo "  Building docker CLI..."
 download_source docker/cli "$DOCKER_VERSION" /tmp/docker-cli
 cd /tmp/docker-cli
 DOCKER_GITCOMMIT=$(get_commit_sha docker/cli "$DOCKER_VERSION")
-CGO_ENABLED=0 GOOS=linux go build \
+CGO_ENABLED=0 GOOS=linux go build -mod=vendor -modfile=vendor.mod \
     -ldflags "-X github.com/docker/cli/cli/version.Version=${DOCKER_VERSION#v} -X github.com/docker/cli/cli/version.GitCommit=${DOCKER_GITCOMMIT}" \
     -o docker ./cmd/docker
 
@@ -57,17 +62,17 @@ echo "  Building dockerd + docker-proxy..."
 download_source moby/moby "docker-${DOCKER_VERSION}" /tmp/moby
 cd /tmp/moby
 MOBY_GITCOMMIT=$(get_commit_sha moby/moby "docker-${DOCKER_VERSION}")
-CGO_ENABLED=0 GOOS=linux go build \
+GOOS=linux go build -mod=vendor \
     -ldflags "-X github.com/docker/docker/dockerversion.Version=${DOCKER_VERSION#v} -X github.com/docker/docker/dockerversion.GitCommit=${MOBY_GITCOMMIT}" \
     -o dockerd ./cmd/dockerd
-CGO_ENABLED=0 GOOS=linux go build -o docker-proxy ./cmd/docker-proxy
+CGO_ENABLED=0 GOOS=linux go build -mod=vendor -o docker-proxy ./cmd/docker-proxy
 
 # containerd + shim
 echo "  Building containerd..."
 download_source containerd/containerd "$CONTAINERD_VERSION" /tmp/containerd
 cd /tmp/containerd
-CGO_ENABLED=0 GOOS=linux go build -o bin/containerd ./cmd/containerd
-CGO_ENABLED=0 GOOS=linux go build -o bin/containerd-shim-runc-v2 ./cmd/containerd-shim-runc-v2
+CGO_ENABLED=0 GOOS=linux go build -mod=vendor -o bin/containerd ./cmd/containerd
+CGO_ENABLED=0 GOOS=linux go build -mod=vendor -o bin/containerd-shim-runc-v2 ./cmd/containerd-shim-runc-v2
 
 # runc
 echo "  Building runc..."
@@ -111,7 +116,7 @@ echo "==> Building Podman stack..."
 echo "  Building podman..."
 download_source containers/podman "$PODMAN_VERSION" /tmp/podman
 cd /tmp/podman
-CGO_ENABLED=0 GOOS=linux go build \
+CGO_ENABLED=0 GOOS=linux go build -mod=vendor \
     -tags "remote exclude_graphdriver_btrfs btrfs_noversion exclude_graphdriver_devicemapper containers_image_openpgp" \
     -o bin/podman ./cmd/podman
 

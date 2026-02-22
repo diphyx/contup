@@ -16,7 +16,7 @@ on:
 env:
   GO_VERSION: "1.25"
   GOTOOLCHAIN: "local"
-  RUST_VERSION: "1.82"
+  RUST_VERSION: "1.85"
 
 jobs:
   build:

@@ -41,7 +41,7 @@ PORTS
         gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross \
         libseccomp-dev:arm64 libyajl-dev:arm64 libcap-dev:arm64 \
         libglib2.0-dev:arm64 libslirp-dev:arm64 libfuse3-dev:arm64 libnftables-dev:arm64 \
-        libsqlite3-dev:arm64
+        libsqlite3-dev:arm64 libsystemd-dev:arm64
 fi
 
 echo "==> Setting build environment for ${ARCH}..."

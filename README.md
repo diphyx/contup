@@ -1,53 +1,67 @@
-# contup
+# 📦 contup
 
-**cont**ainer **up** — Prebuilt container runtime binaries (Docker, Podman, Docker Compose) with an interactive CLI installer and management tool for Linux.
+> **cont**ainer **up** — Prebuilt container runtime binaries for Linux with an interactive installer.
 
-All binaries are compiled from official sources as static builds, bundled into architecture-specific tarballs, and published to GitHub Releases.
+Static builds of **Docker**, **Podman**, and **Docker Compose** — compiled from official sources, bundled into architecture-specific tarballs, and published to [GitHub Releases](https://github.com/diphyx/contup/releases).
 
-## Why
+---
 
-No repos. No dependencies. No distro-specific packages. Just static binaries from official sources.
-
-- **No root access** — HPC users, shared servers, or locked-down machines where you can't `sudo`
-- **Restricted networks** — environments behind firewalls that block distro repos but allow GitHub
-- **Offline / air-gapped** — download one tarball, transfer via USB or scp, install without network
-- **No package manager** — minimal containers, scratch VMs, or custom distros without apt/yum/dnf
-
-## Quick Install
+## 🚀 Quick Install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/diphyx/contup/main/contup.sh | bash
 ```
 
-This installs Docker + Compose with default settings. For more control, download `contup.sh` and run it directly.
+> Installs Docker + Compose with default settings. For more control, download `contup.sh` and run it directly.
 
-## Features
+---
 
-- Static prebuilt binaries from official upstream sources
-- Docker and Podman support with seamless switching
-- Root and rootless installation modes
-- Interactive arrow-key menu for runtime selection
-- Automatic systemd service configuration
-- Docker Compose as both standalone binary and CLI plugin
-- Checksum verification for downloaded tarballs
-- Offline installation from bundled tarballs
+## 🤔 Why contup?
 
-## Supported Architectures
+No repos. No dependencies. No distro-specific packages. Just **static binaries** from official sources.
+
+| Scenario                    | Description                                                               |
+| --------------------------- | ------------------------------------------------------------------------- |
+| 🔒 **No root access**       | HPC users, shared servers, or locked-down machines where you can't `sudo` |
+| 🌐 **Restricted networks**  | Environments behind firewalls that block distro repos but allow GitHub    |
+| ✈️ **Offline / air-gapped** | Download one tarball, transfer via USB or scp, install without network    |
+| 📭 **No package manager**   | Minimal containers, scratch VMs, or custom distros without apt/yum/dnf    |
+
+---
+
+## ✨ Features
+
+- 🏗️ Static prebuilt binaries from official upstream sources
+- 🐳 Docker and Podman support with seamless switching
+- 👤 Root and rootless installation modes
+- 🎯 Interactive arrow-key menu for runtime selection
+- ⚙️ Automatic systemd service configuration
+- 🔌 Docker Compose as both standalone binary and CLI plugin
+- ✅ Checksum verification for downloaded tarballs
+- 📦 Offline installation from bundled tarballs
+
+---
+
+## 🖥️ Supported Architectures
 
 | Architecture | Target  |
 | ------------ | ------- |
 | x86_64       | `amd64` |
 | aarch64      | `arm64` |
 
-## Requirements
+---
 
-- Linux with kernel >= 4.18
-- systemd
-- cgroups v2 (v1 supported with warnings)
-- iptables or nftables
-- For rootless mode: `newuidmap` / `newgidmap`
+## 📋 Requirements
 
-## Usage
+- 🐧 Linux with kernel >= 4.18
+- 🔧 systemd
+- 📂 cgroups v2 (v1 supported with warnings)
+- 🔥 iptables or nftables
+- 👤 For rootless mode: `newuidmap` / `newgidmap`
+
+---
+
+## 💻 Usage
 
 ```
 contup <command> [runtime] [flags]
@@ -55,19 +69,19 @@ contup <command> [runtime] [flags]
 
 ### Commands
 
-| Command     | Arguments                | Description                     |
-| ----------- | ------------------------ | ------------------------------- |
-| `install`   | `[docker\|podman\|both]` | Install container runtime       |
-| `uninstall` | `[docker\|podman\|both]` | Remove runtime and configs      |
-| `update`    | `[docker\|podman\|both]` | Update to latest version        |
-| `start`     | `[docker\|podman]`       | Start runtime services          |
-| `stop`      | `[docker\|podman]`       | Stop runtime services           |
-| `restart`   | `[docker\|podman]`       | Restart runtime services        |
-| `switch`    | `<docker\|podman>`       | Switch active runtime           |
-| `test`      | `[docker\|podman]`       | Test runtime with containers    |
-| `status`    |                          | Show runtime status             |
-| `info`      |                          | Show system and runtime details |
-| `help`      |                          | Show help                       |
+| Command     | Arguments                | Description                        |
+| ----------- | ------------------------ | ---------------------------------- |
+| `install`   | `[docker\|podman\|both]` | 📥 Install container runtime       |
+| `uninstall` | `[docker\|podman\|both]` | 🗑️ Remove runtime and configs      |
+| `update`    | `[docker\|podman\|both]` | 🔄 Update to latest version        |
+| `start`     | `[docker\|podman]`       | ▶️ Start runtime services          |
+| `stop`      | `[docker\|podman]`       | ⏹️ Stop runtime services           |
+| `restart`   | `[docker\|podman]`       | 🔁 Restart runtime services        |
+| `switch`    | `<docker\|podman>`       | 🔀 Switch active runtime           |
+| `test`      | `[docker\|podman]`       | 🧪 Test runtime with containers    |
+| `status`    |                          | 📊 Show runtime status             |
+| `info`      |                          | ℹ️ Show system and runtime details |
+| `help`      |                          | ❓ Show help                       |
 
 ### Flags
 
@@ -111,9 +125,11 @@ contup info
 contup install docker --offline
 ```
 
-## Installation Modes
+---
 
-### Root
+## 🔐 Installation Modes
+
+### 🛡️ Root
 
 When run as root (or with `sudo`), contup installs to:
 
@@ -125,7 +141,7 @@ When run as root (or with `sudo`), contup installs to:
 | `/etc/systemd/system/`               | Systemd units        |
 | `/usr/local/lib/docker/cli-plugins/` | Docker CLI plugins   |
 
-### Rootless
+### 👤 Rootless
 
 When run as a regular user, contup installs to:
 
@@ -137,11 +153,13 @@ When run as a regular user, contup installs to:
 | `~/.config/systemd/user/` | Systemd user units   |
 | `~/.docker/cli-plugins/`  | Docker CLI plugins   |
 
-Rootless mode uses `dockerd-rootless.sh` for Docker and configures user-scoped systemd services with `loginctl enable-linger`.
+> Rootless mode uses `dockerd-rootless.sh` for Docker and configures user-scoped systemd services with `loginctl enable-linger`.
 
-## What Gets Installed
+---
 
-### Docker Stack
+## 🧩 What Gets Installed
+
+### 🐳 Docker Stack
 
 | Binary                    | Source                                                                                |
 | ------------------------- | ------------------------------------------------------------------------------------- |
@@ -155,17 +173,17 @@ Rootless mode uses `dockerd-rootless.sh` for Docker and configures user-scoped s
 | `rootlesskit`             | [rootless-containers/rootlesskit](https://github.com/rootless-containers/rootlesskit) |
 | `dockerd-rootless.sh`     | [moby/moby](https://github.com/moby/moby)                                             |
 
-### Compose
+### 🔌 Compose
 
 | Binary           | Source                                              |
 | ---------------- | --------------------------------------------------- |
 | `docker-compose` | [docker/compose](https://github.com/docker/compose) |
 
-Installed as both a standalone binary and a Docker CLI plugin (`docker compose`).
+> Installed as both a standalone binary and a Docker CLI plugin (`docker compose`).
 
-### Podman Stack
+### 🦭 Podman Stack
 
-The `podman` binary is built as a remote client (`CGO_ENABLED=0` with `remote` build tag) that connects to the podman socket service managed by systemd.
+> The `podman` binary is built as a remote client (`CGO_ENABLED=0` with `remote` build tag) that connects to the podman socket service managed by systemd.
 
 | Binary           | Source                                                                                |
 | ---------------- | ------------------------------------------------------------------------------------- |
@@ -177,21 +195,25 @@ The `podman` binary is built as a remote client (`CGO_ENABLED=0` with `remote` b
 | `slirp4netns`    | [rootless-containers/slirp4netns](https://github.com/rootless-containers/slirp4netns) |
 | `fuse-overlayfs` | [containers/fuse-overlayfs](https://github.com/containers/fuse-overlayfs)             |
 
-## Runtime Switching
+---
+
+## 🔀 Runtime Switching
 
 When both Docker and Podman are installed, `contup switch` changes the `DOCKER_HOST` environment variable to point to the selected runtime's socket:
 
 ```bash
 # Switch to Podman
 contup switch podman
-source ~/.bashrc
 
 # Switch back to Docker
 contup switch docker
-source ~/.bashrc
 ```
 
-## Offline Installation
+> During installation, contup adds a shell wrapper function that automatically reloads environment variables after switching — no manual `source ~/.bashrc` needed.
+
+---
+
+## ✈️ Offline Installation
 
 Download a release tarball, extract it, and run contup with `--offline`:
 
@@ -201,12 +223,16 @@ cd contup-v1.0.0-amd64
 ./contup.sh install docker --offline
 ```
 
-## Version Management
+---
+
+## 🔖 Version Management
 
 Component versions are pinned in [`versions.env`](versions.env). Docker dependency versions (containerd, runc, tini, rootlesskit) are derived from the moby/moby Dockerfile to ensure compatibility.
 
 A weekly GitHub Actions workflow ([`versions.yml`](.github/workflows/versions.yml)) automatically resolves and updates these versions.
 
-## License
+---
+
+## 📄 License
 
 MIT

@@ -921,6 +921,64 @@ ensure_path() {
     fi
 }
 
+install_shell_wrapper() {
+    local marker="# contup: shell-wrapper"
+    local marker_end="# contup: shell-wrapper-end"
+    local wrapper
+    read -r -d '' wrapper <<'WRAPPER' || true
+contup() { # contup: shell-wrapper
+    local _contup_script
+    _contup_script=$(command -v contup.sh 2>/dev/null || command -v contup 2>/dev/null) || { echo "contup: not found" >&2; return 1; }
+    command bash "$_contup_script" "$@"
+    local _rc=$?
+    if [[ "$1" == "switch" && $_rc -eq 0 ]]; then
+        local _line
+        _line=$(grep '# contup: DOCKER_HOST' /etc/profile.d/contup.sh "${HOME}/.bashrc" "${HOME}/.zshrc" "${HOME}/.profile" 2>/dev/null | head -1)
+        [[ -n "$_line" ]] && eval "${_line#*:}"
+    fi
+    return $_rc
+} # contup: shell-wrapper-end
+WRAPPER
+
+    if [[ "$IS_ROOT" == true ]]; then
+        local profile="/etc/profile.d/contup.sh"
+        mkdir -p /etc/profile.d
+        if [[ -f "$profile" ]]; then
+            sed -i "/${marker}/,/${marker_end}/d" "$profile"
+        fi
+        echo "$wrapper" >> "$profile"
+    else
+        for rc in "${HOME}/.bashrc" "${HOME}/.zshrc" "${HOME}/.profile"; do
+            if [[ -f "$rc" ]]; then
+                sed -i "/${marker}/,/${marker_end}/d" "$rc"
+                echo "$wrapper" >> "$rc"
+            fi
+        done
+    fi
+    print_ok "Installed contup shell wrapper (switch works without restart)"
+}
+
+remove_shell_wrapper() {
+    local marker="# contup: shell-wrapper"
+    local marker_end="# contup: shell-wrapper-end"
+
+    if [[ "$IS_ROOT" == true ]]; then
+        local profile="/etc/profile.d/contup.sh"
+        if [[ -f "$profile" ]]; then
+            sed -i "/${marker}/,/${marker_end}/d" "$profile"
+            if [[ ! -s "$profile" ]]; then
+                rm -f "$profile"
+            fi
+        fi
+    else
+        for rc in "${HOME}/.bashrc" "${HOME}/.zshrc" "${HOME}/.profile"; do
+            if [[ -f "$rc" ]]; then
+                sed -i "/${marker}/,/${marker_end}/d" "$rc"
+            fi
+        done
+    fi
+}
+
 # Services
 
 _systemctl() {
@@ -1233,6 +1291,7 @@ cmd_install() {
     install_binaries "$src_dir" "compose"
 
     ensure_path
+    install_shell_wrapper
 
     # Step 6 — Configure
     print_step "6" "Configure"
@@ -1437,6 +1496,8 @@ cmd_uninstall() {
     elif [[ "$runtime" == "podman" ]] && is_runtime_installed docker; then
         update_shell_profile "DOCKER_HOST" "$DOCKER_HOST_SOCKET"
         print_ok "Switched DOCKER_HOST to Docker"
+    else
+        remove_shell_wrapper
     fi
 
     echo ""
@@ -1618,9 +1679,7 @@ cmd_switch() {
 
     echo ""
     print_box "${S_OK} Switched to ${target^}" \
-        "DOCKER_HOST=${socket}" \
-        "" \
-        "Run: source ~/.bashrc (or restart shell)"
+        "DOCKER_HOST=${socket}"
 }
 
 cmd_test() {

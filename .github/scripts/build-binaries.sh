@@ -4,22 +4,55 @@ set -euo pipefail
 # Build all container runtime binaries from source
 # Requires: versions.env loaded into environment, GOARCH and CARGO_TARGET set
 
+download_source() {
+    local org_repo="$1" tag="$2" dest="$3"
+    local url="https://github.com/${org_repo}/archive/refs/tags/${tag}.tar.gz"
+    local tarball="/tmp/$(echo "${org_repo}" | tr '/' '-')-${tag}.tar.gz"
+    echo "    Downloading ${url}..."
+    curl -fSL -o "$tarball" "$url"
+    mkdir -p "$dest"
+    tar -xzf "$tarball" --strip-components=1 -C "$dest"
+    rm -f "$tarball"
+    ls "$dest/go.mod" "$dest/Makefile" "$dest/Cargo.toml" "$dest/meson.build" "$dest/CMakeLists.txt" 2>/dev/null || true
+}
+
+init_git_tag() {
+    local dest="$1" tag="$2"
+    git -C "$dest" init -q
+    git -C "$dest" add -A
+    git -C "$dest" -c user.name=build -c user.email=build commit -q -m "$tag"
+    git -C "$dest" tag "$tag"
+}
+
+get_commit_sha() {
+    local org_repo="$1" tag="$2"
+    local ref_json sha type
+    ref_json=$(curl -fsSL "https://api.github.com/repos/${org_repo}/git/ref/tags/${tag}")
+    sha=$(echo "$ref_json" | grep -o '"sha":"[^"]*"' | head -1 | cut -d'"' -f4)
+    type=$(echo "$ref_json" | grep -o '"type":"[^"]*"' | head -1 | cut -d'"' -f4)
+    if [[ "$type" == "tag" ]]; then
+        sha=$(curl -fsSL "https://api.github.com/repos/${org_repo}/git/tags/${sha}" \
+            | grep -o '"sha":"[^"]*"' | tail -1 | cut -d'"' -f4)
+    fi
+    echo "${sha:0:7}"
+}
+
 echo "==> Building Docker stack..."
 
 # docker CLI
 echo "  Building docker CLI..."
-git clone --depth 1 --branch "$DOCKER_VERSION" https://github.com/docker/cli.git /tmp/docker-cli
+download_source docker/cli "$DOCKER_VERSION" /tmp/docker-cli
 cd /tmp/docker-cli
-DOCKER_GITCOMMIT=$(git rev-parse --short HEAD)
+DOCKER_GITCOMMIT=$(get_commit_sha docker/cli "$DOCKER_VERSION")
 CGO_ENABLED=0 GOOS=linux go build \
     -ldflags "-X github.com/docker/cli/cli/version.Version=${DOCKER_VERSION#v} -X github.com/docker/cli/cli/version.GitCommit=${DOCKER_GITCOMMIT}" \
     -o docker ./cmd/docker
 
 # dockerd + docker-proxy
 echo "  Building dockerd + docker-proxy..."
-git clone --depth 1 --branch "$DOCKER_VERSION" https://github.com/moby/moby.git /tmp/moby
+download_source moby/moby "docker-${DOCKER_VERSION}" /tmp/moby
 cd /tmp/moby
-MOBY_GITCOMMIT=$(git rev-parse --short HEAD)
+MOBY_GITCOMMIT=$(get_commit_sha moby/moby "docker-${DOCKER_VERSION}")
 CGO_ENABLED=0 GOOS=linux go build \
     -ldflags "-X github.com/docker/docker/dockerversion.Version=${DOCKER_VERSION#v} -X github.com/docker/docker/dockerversion.GitCommit=${MOBY_GITCOMMIT}" \
     -o dockerd ./cmd/dockerd
@@ -27,20 +60,21 @@ CGO_ENABLED=0 GOOS=linux go build -o docker-proxy ./cmd/docker-proxy
 
 # containerd + shim
 echo "  Building containerd..."
-git clone --depth 1 --branch "$CONTAINERD_VERSION" https://github.com/containerd/containerd.git /tmp/containerd
+download_source containerd/containerd "$CONTAINERD_VERSION" /tmp/containerd
 cd /tmp/containerd
 CGO_ENABLED=0 GOOS=linux go build -o bin/containerd ./cmd/containerd
 CGO_ENABLED=0 GOOS=linux go build -o bin/containerd-shim-runc-v2 ./cmd/containerd-shim-runc-v2
 
 # runc
 echo "  Building runc..."
-git clone --depth 1 --branch "$RUNC_VERSION" https://github.com/opencontainers/runc.git /tmp/runc
+download_source opencontainers/runc "$RUNC_VERSION" /tmp/runc
+init_git_tag /tmp/runc "$RUNC_VERSION"
 cd /tmp/runc
 make static
 
 # docker-init (tini)
 echo "  Building docker-init (tini)..."
-git clone --depth 1 --branch "$TINI_VERSION" https://github.com/krallin/tini.git /tmp/tini
+download_source krallin/tini "$TINI_VERSION" /tmp/tini
 cd /tmp/tini
 cmake_args="-DCMAKE_BUILD_TYPE=Release"
 if [[ "${CC:-}" == *aarch64* ]]; then
@@ -52,7 +86,7 @@ cp tini-static docker-init
 
 # rootlesskit
 echo "  Building rootlesskit..."
-git clone --depth 1 --branch "$ROOTLESSKIT_VERSION" https://github.com/rootless-containers/rootlesskit.git /tmp/rootlesskit
+download_source rootless-containers/rootlesskit "$ROOTLESSKIT_VERSION" /tmp/rootlesskit
 cd /tmp/rootlesskit
 CGO_ENABLED=0 GOOS=linux go build -o rootlesskit ./cmd/rootlesskit
 
@@ -63,7 +97,7 @@ chmod +x /tmp/dockerd-rootless.sh
 
 echo "==> Building Docker Compose..."
 
-git clone --depth 1 --branch "$COMPOSE_VERSION" https://github.com/docker/compose.git /tmp/compose
+download_source docker/compose "$COMPOSE_VERSION" /tmp/compose
 cd /tmp/compose
 CGO_ENABLED=0 GOOS=linux go build -trimpath -o docker-compose ./cmd
 
@@ -71,7 +105,7 @@ echo "==> Building Podman stack..."
 
 # podman
 echo "  Building podman..."
-git clone --depth 1 --branch "$PODMAN_VERSION" https://github.com/containers/podman.git /tmp/podman
+download_source containers/podman "$PODMAN_VERSION" /tmp/podman
 cd /tmp/podman
 CGO_ENABLED=0 GOOS=linux go build \
     -tags "remote exclude_graphdriver_btrfs btrfs_noversion exclude_graphdriver_devicemapper containers_image_openpgp" \
@@ -79,7 +113,8 @@ CGO_ENABLED=0 GOOS=linux go build \
 
 # crun
 echo "  Building crun..."
-git clone --depth 1 --branch "$CRUN_VERSION" https://github.com/containers/crun.git /tmp/crun
+download_source containers/crun "$CRUN_VERSION" /tmp/crun
+init_git_tag /tmp/crun "$CRUN_VERSION"
 cd /tmp/crun
 ./autogen.sh
 configure_args="--enable-static"
@@ -91,27 +126,29 @@ make
 
 # conmon
 echo "  Building conmon..."
-git clone --depth 1 --branch "$CONMON_VERSION" https://github.com/containers/conmon.git /tmp/conmon
+download_source containers/conmon "$CONMON_VERSION" /tmp/conmon
+init_git_tag /tmp/conmon "$CONMON_VERSION"
 cd /tmp/conmon
 make CC="${CC:-gcc}" PKG_CONFIG='pkg-config --static' CFLAGS='-static' LDFLAGS='-static'
 
 # netavark
 echo "  Building netavark..."
-git clone --depth 1 --branch "$NETAVARK_VERSION" https://github.com/containers/netavark.git /tmp/netavark
+download_source containers/netavark "$NETAVARK_VERSION" /tmp/netavark
 cd /tmp/netavark
 cargo build --release --target "$CARGO_TARGET"
 cp "target/${CARGO_TARGET}/release/netavark" netavark
 
 # aardvark-dns
 echo "  Building aardvark-dns..."
-git clone --depth 1 --branch "$AARDVARK_DNS_VERSION" https://github.com/containers/aardvark-dns.git /tmp/aardvark-dns
+download_source containers/aardvark-dns "$AARDVARK_DNS_VERSION" /tmp/aardvark-dns
 cd /tmp/aardvark-dns
 cargo build --release --target "$CARGO_TARGET"
 cp "target/${CARGO_TARGET}/release/aardvark-dns" aardvark-dns
 
 # slirp4netns
 echo "  Building slirp4netns..."
-git clone --depth 1 --branch "$SLIRP4NETNS_VERSION" https://github.com/rootless-containers/slirp4netns.git /tmp/slirp4netns
+download_source rootless-containers/slirp4netns "$SLIRP4NETNS_VERSION" /tmp/slirp4netns
+init_git_tag /tmp/slirp4netns "$SLIRP4NETNS_VERSION"
 cd /tmp/slirp4netns
 ./autogen.sh
 configure_args=""
@@ -123,7 +160,8 @@ make
 
 # fuse-overlayfs
 echo "  Building fuse-overlayfs..."
-git clone --depth 1 --branch "$FUSE_OVERLAYFS_VERSION" https://github.com/containers/fuse-overlayfs.git /tmp/fuse-overlayfs
+download_source containers/fuse-overlayfs "$FUSE_OVERLAYFS_VERSION" /tmp/fuse-overlayfs
+init_git_tag /tmp/fuse-overlayfs "$FUSE_OVERLAYFS_VERSION"
 cd /tmp/fuse-overlayfs
 meson_args="-Ddefault_library=static"
 if [[ "${CC:-}" == *aarch64* ]]; then

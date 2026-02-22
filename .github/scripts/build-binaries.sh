@@ -8,16 +8,17 @@ download_source() {
     local org_repo="$1" tag="$2" dest="$3"
     local url="https://github.com/${org_repo}/archive/refs/tags/${tag}.tar.gz"
     local tarball="/tmp/$(echo "${org_repo}" | tr '/' '-')-${tag}.tar.gz"
+
     echo "    Downloading ${url}..."
     curl -fSL -o "$tarball" "$url"
     mkdir -p "$dest"
     tar -xzf "$tarball" --strip-components=1 -C "$dest"
     rm -f "$tarball"
-    ls "$dest/go.mod" "$dest/Makefile" "$dest/Cargo.toml" "$dest/meson.build" "$dest/CMakeLists.txt" 2>/dev/null || true
 }
 
 init_git_tag() {
     local dest="$1" tag="$2"
+
     git -C "$dest" init -q
     git -C "$dest" add -A
     git -C "$dest" -c user.name=build -c user.email=build commit -q -m "$tag"
@@ -27,13 +28,16 @@ init_git_tag() {
 get_commit_sha() {
     local org_repo="$1" tag="$2"
     local ref_json sha type
+
     ref_json=$(curl -fsSL "https://api.github.com/repos/${org_repo}/git/ref/tags/${tag}")
     sha=$(echo "$ref_json" | grep -o '"sha":"[^"]*"' | head -1 | cut -d'"' -f4)
     type=$(echo "$ref_json" | grep -o '"type":"[^"]*"' | head -1 | cut -d'"' -f4)
+
     if [[ "$type" == "tag" ]]; then
         sha=$(curl -fsSL "https://api.github.com/repos/${org_repo}/git/tags/${sha}" \
             | grep -o '"sha":"[^"]*"' | tail -1 | cut -d'"' -f4)
     fi
+
     echo "${sha:0:7}"
 }
 

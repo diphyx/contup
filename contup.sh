@@ -5,7 +5,7 @@ set -euo pipefail
 # Prebuilt container runtime binaries + CLI management tool for Linux
 # https://github.com/diphyx/contup
 
-CONTUP_VERSION="1.0.4 (f34d082)"
+CONTUP_VERSION="1.0.4 (016636a)"
 GITHUB_REPO="diphyx/contup"
 GITHUB_API="https://api.github.com/repos/${GITHUB_REPO}"
 
@@ -558,15 +558,15 @@ create_podman_compose_symlink() {
 
 write_containers_conf() {
     local dir="$1"
-    [[ -f "${dir}/containers.conf" ]] && return
-    cat > "${dir}/containers.conf" <<'EOF'
+    cat > "${dir}/containers.conf" <<EOF
 [containers]
 
 [engine]
+helper_binaries_dir = ["${BIN_DIR}"]
 
 [network]
 EOF
-    print_ok "Created ${dir}/containers.conf"
+    print_ok "Configured ${dir}/containers.conf"
 }
 
 write_registries_conf() {
@@ -1602,6 +1602,10 @@ cmd_update() {
 
         if [[ "$rt" == "docker" && "$INSTALL_MODE" == "rootless" ]]; then
             install_binaries "$src_dir" "docker-rootless"
+        fi
+
+        if [[ "$rt" == "podman" ]]; then
+            write_containers_conf "$CONFIG_DIR_PODMAN"
         fi
 
         if [[ "$FLAG_NO_START" != true ]]; then

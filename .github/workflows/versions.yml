@@ -1,0 +1,28 @@
+name: Version Resolution
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve versions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .github/scripts/resolve-versions.sh
+
+      - name: Check for changes
+        id: check
+        run: .github/scripts/check-changes.sh
+
+      - name: Commit and push
+        if: steps.check.outputs.changed == 'true'
+        run: .github/scripts/commit-versions.sh

@@ -1,0 +1,59 @@
+name: Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag (e.g., v1.0.0)"
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      release_tag:
+        required: true
+        type: string
+
+env:
+  GO_VERSION: "1.23"
+  RUST_VERSION: "1.82"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Load versions
+        run: .github/scripts/load-versions.sh
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          targets: ${{ matrix.arch == 'arm64' && 'aarch64-unknown-linux-musl' || 'x86_64-unknown-linux-musl' }}
+
+      - name: Setup build environment
+        run: .github/scripts/setup-env.sh "${{ matrix.arch }}"
+
+      - name: Build binaries
+        run: .github/scripts/build-binaries.sh
+
+      - name: Bundle tarball
+        run: .github/scripts/bundle.sh "${{ inputs.release_tag }}" "${{ matrix.arch }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: contup-${{ matrix.arch }}
+          path: |
+            ${{ env.TARBALL }}
+            ${{ env.CHECKSUM }}

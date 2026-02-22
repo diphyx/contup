@@ -252,6 +252,56 @@ cd contup-v1.0.0-amd64
 
 ---
 
+## 🔧 CI/CD Pipeline
+
+The build pipeline is fully automated via GitHub Actions with three workflows:
+
+### Workflows
+
+| Workflow    | Trigger           | Purpose                                                            |
+| ----------- | ----------------- | ------------------------------------------------------------------ |
+| **Build**   | Manual / Reusable | Build binaries, run smoke tests, bundle tarballs                   |
+| **Verify**  | Called by Release | Full CLI lifecycle test (install, test, status, switch, uninstall) |
+| **Release** | Manual            | Build → Verify → Publish GitHub Release                            |
+
+### Build Inputs
+
+| Input      | Options                    | Default | Description                  |
+| ---------- | -------------------------- | ------- | ---------------------------- |
+| `version`  | any string                 | `dev`   | Release version tag          |
+| `platform` | `both`, `amd64`, `arm64`   | `both`  | Target architecture platform |
+| `runtime`  | `both`, `docker`, `podman` | `both`  | Container runtime target     |
+| `compose`  | `true`, `false`            | `true`  | Include Docker Compose       |
+
+### Pipeline Stages
+
+```
+Build                          Verify                    Release
+ ├─ Load versions              ├─ Download artifact      ├─ Download artifacts
+ ├─ Setup Go + Rust            ├─ Find tarball            ├─ Create checksums
+ ├─ Build binaries             └─ Verify contup           └─ Create GitHub release
+ ├─ Test binaries (amd64)          ├─ install
+ ├─ Bundle tarball                 ├─ test
+ └─ Upload artifact                ├─ status / info
+                                   ├─ stop / start / restart
+                                   ├─ switch
+                                   └─ uninstall
+```
+
+### Build Approach
+
+**Built from source:**
+
+- Docker CLI, dockerd, containerd, runc, tini, rootlesskit
+- conmon, podman, netavark, aardvark-dns
+- Docker Compose
+
+**Pre-built static binaries from GitHub Releases:**
+
+- crun, slirp4netns, fuse-overlayfs
+
+---
+
 ## 📄 License
 
 MIT

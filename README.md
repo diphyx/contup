@@ -72,19 +72,19 @@ contup <command> [runtime] [flags]
 
 ### Commands
 
-| Command     | Arguments                | Description                        |
-| ----------- | ------------------------ | ---------------------------------- |
-| `install`   | `[docker\|podman\|both]` | 📥 Install container runtime       |
-| `uninstall` | `[docker\|podman\|both]` | 🗑️ Remove runtime and configs      |
-| `update`    | `[docker\|podman\|both]` | 🔄 Update to latest version        |
-| `start`     | `[docker\|podman]`       | ▶️ Start runtime services          |
-| `stop`      | `[docker\|podman]`       | ⏹️ Stop runtime services           |
-| `restart`   | `[docker\|podman]`       | 🔁 Restart runtime services        |
-| `switch`    | `<docker\|podman>`       | 🔀 Switch active runtime           |
-| `test`      | `[docker\|podman]`       | 🧪 Test runtime with containers    |
-| `status`    |                          | 📊 Show runtime status             |
-| `info`      |                          | ℹ️ Show system and runtime details |
-| `help`      |                          | ❓ Show help                       |
+| Command     | Arguments                | Description                     |
+| ----------- | ------------------------ | ------------------------------- |
+| `install`   | `[docker\|podman\|both]` | Install container runtime       |
+| `uninstall` | `[docker\|podman\|both]` | Remove runtime and configs      |
+| `update`    | `[docker\|podman\|both]` | Update to latest version        |
+| `start`     | `[docker\|podman]`       | Start runtime services          |
+| `stop`      | `[docker\|podman]`       | Stop runtime services           |
+| `restart`   | `[docker\|podman]`       | Restart runtime services        |
+| `switch`    | `<docker\|podman>`       | Switch active runtime           |
+| `test`      | `[docker\|podman]`       | Test runtime with containers    |
+| `status`    |                          | Show runtime status             |
+| `info`      |                          | Show system and runtime details |
+| `help`      |                          | Show help                       |
 
 ### Flags
 

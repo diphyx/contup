@@ -149,7 +149,6 @@ if [[ "${CC:-}" == *aarch64* ]]; then
 fi
 ./configure $configure_args
 make
-cp .libs/crun crun
 
 # conmon
 echo "  Building conmon..."

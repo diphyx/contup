@@ -22,8 +22,21 @@ curl -fsSL https://raw.githubusercontent.com/diphyx/contup/main/contup.sh -o con
 # Make it executable
 chmod +x contup.sh
 
-# Run it
-./contup.sh install
+# Install contup CLI
+./contup.sh setup
+```
+
+### Install a runtime
+
+```bash
+# Install Docker + Compose
+contup install docker
+
+# Install Podman + Compose
+contup install podman
+
+# Install both Docker and Podman + Compose
+contup install both
 ```
 
 ---
@@ -81,6 +94,7 @@ contup <command> [runtime] [flags]
 
 | Command     | Arguments                | Description                     |
 | ----------- | ------------------------ | ------------------------------- |
+| `setup`     |                          | Install contup CLI only         |
 | `install`   | `[docker\|podman\|both]` | Install container runtime       |
 | `uninstall` | `[docker\|podman\|both]` | Remove runtime and configs      |
 | `update`    | `[docker\|podman\|both]` | Update to latest version        |

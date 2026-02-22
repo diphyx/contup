@@ -138,7 +138,7 @@ download_source containers/podman "$PODMAN_VERSION" /tmp/podman
 cd /tmp/podman
 CGO_ENABLED=1 GOOS=linux go build -mod=vendor \
     -tags "osusergo netgo seccomp systemd libsqlite3 exclude_graphdriver_btrfs exclude_graphdriver_devicemapper containers_image_openpgp" \
-    -ldflags '-s -w -extldflags "-static"' \
+    -ldflags '-s -w -extldflags "-static -lm"' \
     -o bin/podman ./cmd/podman
 
 # crun

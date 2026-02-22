@@ -127,7 +127,8 @@ chmod +x /tmp/dockerd-rootless.sh
 echo "==> Building Docker Compose..."
 download_source docker/compose "$COMPOSE_VERSION" /tmp/compose
 cd /tmp/compose
-CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags "-X github.com/docker/compose/v2/internal.Version=${COMPOSE_VERSION}" -o docker-compose ./cmd
+COMPOSE_MODULE=$(head -1 go.mod | awk '{print $2}')
+CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags "-X ${COMPOSE_MODULE}/internal.Version=${COMPOSE_VERSION}" -o docker-compose ./cmd
 
 echo "==> Building Podman stack..."
 

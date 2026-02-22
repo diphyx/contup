@@ -6,7 +6,7 @@ set -euo pipefail
 # https://github.com/diphyx/contup
 
 CONTUP_VERSION="1.0.0"
-CONTUP_HASH="d01fa40"
+CONTUP_HASH="87f375f"
 GITHUB_REPO="diphyx/contup"
 GITHUB_API="https://api.github.com/repos/${GITHUB_REPO}"
 
@@ -346,11 +346,6 @@ check_existing_install() {
                 ver=$(docker-compose version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
                 echo "compose:installed:${ver}"
                 return 0
-            elif docker compose version &>/dev/null 2>&1; then
-                local ver
-                ver=$(docker compose version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
-                echo "compose:installed:${ver}"
-                return 0
             fi
             ;;
     esac
@@ -363,8 +358,7 @@ get_installed_version() {
     case "$runtime" in
         docker)  docker --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "" ;;
         podman)  podman --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "" ;;
-        compose) docker-compose version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || \
-                 docker compose version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "" ;;
+        compose) docker-compose version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "" ;;
     esac
 }
 
@@ -373,7 +367,7 @@ is_runtime_installed() {
     case "$runtime" in
         docker) command -v docker &>/dev/null && command -v dockerd &>/dev/null ;;
         podman) command -v podman &>/dev/null ;;
-        compose) command -v docker-compose &>/dev/null || docker compose version &>/dev/null 2>&1 ;;
+        compose) command -v docker-compose &>/dev/null ;;
     esac
 }
 
@@ -1080,7 +1074,7 @@ verify_binary() {
     case "$runtime" in
         docker)  cmd="docker --version" ;;
         podman)  cmd="podman --version" ;;
-        compose) cmd="docker compose version" ;;
+        compose) cmd="docker-compose version" ;;
     esac
 
     if version=$(eval "$cmd" 2>/dev/null); then
@@ -1128,11 +1122,11 @@ verify_runtime() {
 }
 
 verify_compose() {
-    if docker compose version &>/dev/null 2>&1; then
-        print_ok "docker compose"
+    if command -v docker-compose &>/dev/null && docker-compose version &>/dev/null 2>&1; then
+        print_ok "docker-compose"
         return 0
     fi
-    if command -v podman-compose &>/dev/null; then
+    if command -v podman-compose &>/dev/null && podman-compose version &>/dev/null 2>&1; then
         print_ok "podman-compose"
         return 0
     fi
@@ -1762,12 +1756,10 @@ cmd_test() {
 
         # Test 4: compose
         local compose_cmd=""
-        if [[ "$rt" == "docker" ]] && docker compose version &>/dev/null 2>&1; then
-            compose_cmd="docker compose"
+        if command -v docker-compose &>/dev/null; then
+            compose_cmd="docker-compose"
         elif command -v podman-compose &>/dev/null; then
             compose_cmd="podman-compose"
-        elif command -v docker-compose &>/dev/null; then
-            compose_cmd="docker-compose"
         fi
 
         if [[ -n "$compose_cmd" ]]; then

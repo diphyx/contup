@@ -176,14 +176,6 @@ When run as a regular user, contup installs to:
 | `rootlesskit`             | [rootless-containers/rootlesskit](https://github.com/rootless-containers/rootlesskit) |
 | `dockerd-rootless.sh`     | [moby/moby](https://github.com/moby/moby)                                             |
 
-### 🔌 Compose
-
-| Binary           | Source                                              |
-| ---------------- | --------------------------------------------------- |
-| `docker-compose` | [docker/compose](https://github.com/docker/compose) |
-
-> Installed as both a standalone binary and a Docker CLI plugin (`docker compose`).
-
 ### 🦭 Podman Stack
 
 > The `podman` binary is built as a remote client (`CGO_ENABLED=0` with `remote` build tag) that connects to the podman socket service managed by systemd.
@@ -197,6 +189,14 @@ When run as a regular user, contup installs to:
 | `aardvark-dns`   | [containers/aardvark-dns](https://github.com/containers/aardvark-dns)                 |
 | `slirp4netns`    | [rootless-containers/slirp4netns](https://github.com/rootless-containers/slirp4netns) |
 | `fuse-overlayfs` | [containers/fuse-overlayfs](https://github.com/containers/fuse-overlayfs)             |
+
+### 🔌 Compose
+
+| Binary           | Source                                              |
+| ---------------- | --------------------------------------------------- |
+| `docker-compose` | [docker/compose](https://github.com/docker/compose) |
+
+> Installed as a standalone binary and as a Docker CLI plugin (`docker compose`). Works with both Docker and Podman — when Podman is installed, contup automatically creates a `podman-compose` symlink to `docker-compose`.
 
 ---
 
@@ -225,14 +225,6 @@ tar -xzf contup-v1.0.0-amd64.tar.gz
 cd contup-v1.0.0-amd64
 ./contup.sh install docker --offline
 ```
-
----
-
-## 🔖 Version Management
-
-Component versions are pinned in [`versions.env`](versions.env). Docker dependency versions (containerd, runc, tini, rootlesskit) are derived from the moby/moby Dockerfile to ensure compatibility.
-
-A weekly GitHub Actions workflow ([`versions.yml`](.github/workflows/versions.yml)) automatically resolves and updates these versions.
 
 ---
 

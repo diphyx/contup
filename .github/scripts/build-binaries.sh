@@ -52,8 +52,10 @@ echo "==> Building Docker stack..."
 echo "  Building docker CLI..."
 download_source docker/cli "$DOCKER_VERSION" /tmp/docker-cli
 cd /tmp/docker-cli
+ln -s vendor.mod go.mod
+ln -s vendor.sum go.sum
 DOCKER_GITCOMMIT=$(get_commit_sha docker/cli "$DOCKER_VERSION")
-CGO_ENABLED=0 GO111MODULE=auto GOOS=linux go build \
+CGO_ENABLED=0 GOOS=linux go build -mod=vendor \
     -ldflags "-X github.com/docker/cli/cli/version.Version=${DOCKER_VERSION#v} -X github.com/docker/cli/cli/version.GitCommit=${DOCKER_GITCOMMIT}" \
     -o docker ./cmd/docker
 

@@ -12,8 +12,11 @@ Static builds of **Docker**, **Podman**, and **Docker Compose** — compiled fro
 # 1. Download the script
 curl -fsSL https://raw.githubusercontent.com/diphyx/contup/main/contup.sh -o contup.sh
 
-# 2. Run the script
-bash contup.sh install
+# 2. Make it executable
+chmod +x contup.sh
+
+# 3. Run it
+./contup.sh install
 ```
 
 ---

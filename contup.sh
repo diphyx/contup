@@ -153,8 +153,8 @@ select_menu() {
             $'\x1b')
                 read -rsn2 key
                 case "$key" in
-                    '[A') ((selected > 0)) && ((selected--)) ;;
-                    '[B') ((selected < count - 1)) && ((selected++)) ;;
+                    '[A') ((selected > 0)) && ((selected--)) || true ;;
+                    '[B') ((selected < count - 1)) && ((selected++)) || true ;;
                 esac
                 ;;
             '') break ;;
@@ -192,7 +192,7 @@ spinner() {
     local i=0
     while kill -0 "$pid" 2>/dev/null; do
         printf "\r  %s  %s" "${chars:i%${#chars}:1}" "$msg" >&2
-        ((i++))
+        ((i++)) || true
         sleep 0.1
     done
     printf "\r\033[2K" >&2
@@ -516,7 +516,7 @@ install_binaries() {
         fi
         cp "$src" "${BIN_DIR}/${bin}"
         chmod +x "${BIN_DIR}/${bin}"
-        ((count++))
+        ((count++)) || true
         progress_bar "$count" "$total" "$bin"
     done
 }
@@ -1064,7 +1064,7 @@ wait_for_socket() {
 
     while [[ ! -S "$socket_path" ]] && [[ $elapsed -lt $timeout ]]; do
         sleep 1
-        ((elapsed++))
+        ((elapsed++)) || true
     done
 
     if [[ ! -S "$socket_path" ]]; then
@@ -1715,26 +1715,26 @@ cmd_test() {
 
         if ! is_runtime_running "$rt"; then
             print_fail "${rt} is not running"
-            ((total_fail++))
+            ((total_fail++)) || true
             continue
         fi
 
         # Test 1: hello-world
         if $cmd run --rm hello-world &>/dev/null; then
             print_ok "hello-world"
-            ((pass++))
+            ((pass++)) || true
         else
             print_fail "hello-world"
-            ((fail++))
+            ((fail++)) || true
         fi
 
         # Test 2: alpine echo
         if $cmd run --rm alpine echo "contup test ok" &>/dev/null; then
             print_ok "alpine echo"
-            ((pass++))
+            ((pass++)) || true
         else
             print_fail "alpine echo"
-            ((fail++))
+            ((fail++)) || true
         fi
 
         # Test 3: nginx port mapping
@@ -1746,15 +1746,15 @@ cmd_test() {
             port=$($cmd port "$container_id" 80 2>/dev/null | head -1 | cut -d: -f2)
             if [[ -n "$port" ]] && curl -sf "http://localhost:${port}" &>/dev/null; then
                 print_ok "nginx port map"
-                ((pass++))
+                ((pass++)) || true
             else
                 print_fail "nginx port map"
-                ((fail++))
+                ((fail++)) || true
             fi
             $cmd rm -f "$container_id" &>/dev/null || true
         else
             print_fail "nginx port map"
-            ((fail++))
+            ((fail++)) || true
         fi
 
         # Test 4: compose
@@ -1779,10 +1779,10 @@ services:
 COMPOSEYML
             if (cd "$tmpdir" && $compose_cmd up -d &>/dev/null && sleep 2 && $compose_cmd down &>/dev/null); then
                 print_ok "compose up/down"
-                ((pass++))
+                ((pass++)) || true
             else
                 print_fail "compose up/down"
-                ((fail++))
+                ((fail++)) || true
                 (cd "$tmpdir" && $compose_cmd down &>/dev/null 2>&1 || true)
             fi
             rm -rf "$tmpdir"

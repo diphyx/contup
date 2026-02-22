@@ -6,7 +6,7 @@ set -euo pipefail
 # https://github.com/diphyx/contup
 
 CONTUP_VERSION="1.0.0"
-CONTUP_HASH="6e2020c"
+CONTUP_HASH="acbb284"
 GITHUB_REPO="diphyx/contup"
 GITHUB_API="https://api.github.com/repos/${GITHUB_REPO}"
 

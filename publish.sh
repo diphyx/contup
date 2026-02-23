@@ -60,6 +60,8 @@ sed -i.bak \
     README.md
 rm -f README.md.bak
 
+cp "$SCRIPT" docs/setup.sh
+
 echo ""
 echo "==> ${CURRENT} → ${NEW}"
 

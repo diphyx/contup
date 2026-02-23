@@ -1182,7 +1182,7 @@ cmd_setup() {
 
     echo ""
     print_box "${S_OK} contup CLI installed" \
-        "Run 'contup install docker' or 'contup install podman' to get started"
+        "Next: ${C_BOLD}contup install${C_RESET} <docker|podman>"
 }
 
 cmd_install() {

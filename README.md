@@ -14,21 +14,7 @@ Static builds of **Docker**, **Podman**, and **Docker Compose** — compiled fro
 ## 🚀 Quick Start
 
 ```bash
-# Install contup CLI
-curl -fsSL https://raw.githubusercontent.com/diphyx/contup/main/contup.sh | bash
-```
-
-Or download and run manually:
-
-```bash
-# Download the script
-curl -fsSL https://raw.githubusercontent.com/diphyx/contup/main/contup.sh -o contup.sh
-
-# Make it executable
-chmod +x contup.sh
-
-# Install contup CLI
-./contup.sh setup
+curl -fsSL diphyx.github.io/contup/setup.sh | bash
 ```
 
 ### Install a runtime

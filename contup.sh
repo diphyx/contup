@@ -5,7 +5,7 @@ set -euo pipefail
 # Prebuilt container runtime binaries + CLI management tool for Linux
 # https://github.com/diphyx/contup
 
-CONTUP_VERSION="2.0.1 (c4de7dd)"
+CONTUP_VERSION="2.0.1 (daca990)"
 GITHUB_REPO="diphyx/contup"
 GITHUB_API="https://api.github.com/repos/${GITHUB_REPO}"
 
@@ -929,23 +929,19 @@ file_remove() {
     # file_remove FILE MARKER MARKER_END — remove block between markers (inclusive)
     local file="$1" ms="$2" me="${3:-}"
     [[ -f "$file" ]] || return 0
-    local tmp="${file}.contup.tmp" inside=false changed=false
+    local tmp="${file}.contup.tmp" inside=false
     while IFS= read -r l || [[ -n "$l" ]]; do
         if [[ -n "$me" ]]; then
             if [[ "$inside" == true ]]; then
                 [[ "$l" == *"$me"* ]] && inside=false; continue
             fi
-            [[ "$l" == *"$ms"* ]] && inside=true && changed=true && continue
+            [[ "$l" == *"$ms"* ]] && inside=true && continue
         else
-            [[ "$l" == *"$ms"* ]] && changed=true && continue
+            [[ "$l" == *"$ms"* ]] && continue
         fi
         printf '%s\n' "$l"
     done < "$file" > "$tmp"
-    if [[ "$changed" == true ]]; then
-        mv "$tmp" "$file"
-    else
-        rm -f "$tmp"
-    fi
+    mv "$tmp" "$file"
 }
 
 update_shell_profile() {

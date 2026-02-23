@@ -74,27 +74,28 @@ No repos. No dependencies. No distro-specific packages. Just **static binaries**
 
 ### 👤 Rootless Prerequisites
 
-Rootless mode requires the following to be configured by an administrator:
-
-**1. Install `newuidmap` / `newgidmap`:**
-
-| Distro                       | Install command                 |
-| ---------------------------- | ------------------------------- |
-| Ubuntu / Debian              | `sudo apt install uidmap`       |
-| Fedora                       | `sudo dnf install shadow-utils` |
-| CentOS / RHEL / Rocky / Alma | `sudo yum install shadow-utils` |
-| Arch / Manjaro               | `sudo pacman -S shadow`         |
-| openSUSE / SLES              | `sudo zypper install shadow`    |
-| Alpine                       | `sudo apk add shadow-uidmap`    |
-
-**2. Enable unprivileged user namespaces** (if restricted by the kernel):
+Rootless mode requires `newuidmap`/`newgidmap` and unprivileged user namespaces. An administrator must configure these before installing:
 
 ```bash
-# Ubuntu 23.10+
+# Ubuntu / Debian (Ubuntu 23.10+ also needs userns fix)
+sudo apt install uidmap
 echo "kernel.apparmor_restrict_unprivileged_userns=0" | sudo tee /etc/sysctl.d/99-rootless.conf && sudo sysctl --system
 
-# CentOS / RHEL 7
+# Fedora
+sudo dnf install shadow-utils
+
+# CentOS / RHEL / Rocky / Alma (RHEL 7 also needs userns fix)
+sudo yum install shadow-utils
 echo "kernel.unprivileged_userns_clone=1" | sudo tee /etc/sysctl.d/99-rootless.conf && sudo sysctl --system
+
+# Arch / Manjaro
+sudo pacman -S shadow
+
+# openSUSE / SLES
+sudo zypper install shadow
+
+# Alpine
+sudo apk add shadow-uidmap
 ```
 
 > contup automatically detects missing prerequisites during install and shows the exact commands to fix them.

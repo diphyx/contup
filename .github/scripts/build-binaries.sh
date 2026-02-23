@@ -165,7 +165,7 @@ CGO_ENABLED=1 GOOS=linux go build -mod=vendor \
 # crun (pre-built static binary)
 echo "  Downloading crun..."
 mkdir -p /tmp/crun
-download_binary containers/crun "$CRUN_VERSION" "crun-${CRUN_VERSION}-${CRUN_ARCH}-disable-systemd" /tmp/crun/crun
+download_binary containers/crun "$CRUN_VERSION" "crun-${CRUN_VERSION}-${CRUN_ARCH}" /tmp/crun/crun
 
 # conmon
 echo "  Building conmon..."

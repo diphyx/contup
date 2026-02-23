@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>contup — container up</title>
+        <meta name="description" content="Prebuilt container runtime binaries for Linux. No repos. No dependencies. Just static binaries." />
+        <meta property="og:title" content="contup — container up" />
+        <meta property="og:description" content="Prebuilt container runtime binaries for Linux. No repos. No dependencies. Just static binaries." />
+        <meta property="og:image" content="https://raw.githubusercontent.com/diphyx/contup/main/showcase/png/setup.png" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+        <style>
+            :root {
+                --bg: #fafafa;
+                --surface: #fff;
+                --border: #e5e5e5;
+                --border-hover: #ccc;
+                --text: #171717;
+                --text-muted: #737373;
+                --accent: #2563eb;
+                --accent-glow: rgba(37, 99, 235, 0.08);
+                --shadow: rgba(0, 0, 0, 0.08);
+            }
+
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --bg: #0a0a0a;
+                    --surface: #141414;
+                    --border: #222;
+                    --border-hover: #444;
+                    --text: #ededed;
+                    --text-muted: #888;
+                    --accent: #3b82f6;
+                    --accent-glow: rgba(59, 130, 246, 0.15);
+                    --shadow: rgba(0, 0, 0, 0.4);
+                }
+            }
+
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+
+            body {
+                font-family: "Inter", -apple-system, sans-serif;
+                background: var(--bg);
+                color: var(--text);
+                min-height: 100vh;
+                overflow-x: hidden;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .bg-glow {
+                position: fixed;
+                top: -40%;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 800px;
+                height: 600px;
+                background: radial-gradient(ellipse, var(--accent-glow) 0%, transparent 70%);
+                pointer-events: none;
+                z-index: 0;
+            }
+
+            main {
+                position: relative;
+                z-index: 1;
+                max-width: 720px;
+                width: 100%;
+                margin: 0 auto;
+                padding: 2.5rem 1.5rem 2rem;
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                animation: fadeIn 0.6s ease-out;
+            }
+
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(12px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
+            .hero { text-align: center; margin-bottom: 1.5rem; }
+
+            .logo {
+                font-size: 2.5rem;
+                font-weight: 700;
+                letter-spacing: -0.04em;
+                margin-bottom: 0.5rem;
+            }
+
+            .tagline {
+                font-size: 1rem;
+                color: var(--text-muted);
+                font-weight: 400;
+                line-height: 1.6;
+                letter-spacing: -0.01em;
+                max-width: 420px;
+                margin: 0 auto;
+            }
+            .tagline strong {
+                color: var(--text);
+                font-weight: 500;
+            }
+
+            .install {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 0.75rem 1.1rem;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.75rem;
+                max-width: 480px;
+                margin: 0 auto 1.5rem;
+                transition: border-color 0.2s, box-shadow 0.2s;
+            }
+            .install:hover {
+                border-color: var(--border-hover);
+                box-shadow: 0 2px 12px var(--shadow);
+            }
+
+            .install code {
+                font-family: "JetBrains Mono", monospace;
+                font-size: 0.8rem;
+                color: var(--text);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .install code .dim { color: var(--text-muted); }
+
+            .install button {
+                background: transparent;
+                border: none;
+                color: var(--text-muted);
+                cursor: pointer;
+                padding: 0.3rem;
+                border-radius: 4px;
+                transition: color 0.2s;
+                flex-shrink: 0;
+                display: flex;
+                align-items: center;
+            }
+            .install button:hover { color: var(--text); }
+            .install button svg { width: 16px; height: 16px; }
+
+            .preview {
+                border-radius: 12px;
+                overflow: hidden;
+                border: 1px solid var(--border);
+                box-shadow: 0 16px 40px var(--shadow);
+                margin-bottom: 1.5rem;
+            }
+            .preview img { width: 100%; display: block; }
+
+            .features {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1px;
+                background: var(--border);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                overflow: hidden;
+            }
+
+            .feature {
+                background: var(--surface);
+                padding: 0.85rem 0.25rem;
+                text-align: center;
+            }
+            .feature-icon {
+                font-size: 1.1rem;
+                margin-bottom: 0.3rem;
+            }
+            .feature-title {
+                font-size: 0.65rem;
+                font-weight: 500;
+                color: var(--text);
+                margin-bottom: 0.1rem;
+            }
+            .feature-desc {
+                font-size: 0.55rem;
+                color: var(--text-muted);
+            }
+
+            footer {
+                position: relative;
+                z-index: 1;
+                text-align: center;
+                padding: 1rem 1.5rem;
+                color: var(--text-muted);
+                font-size: 0.75rem;
+            }
+            footer a { color: var(--text-muted); text-decoration: none; }
+            footer a:hover { color: var(--text); }
+
+            @media (max-width: 640px) {
+                main { padding: 2rem 1.25rem 1.5rem; }
+                .logo { font-size: 2.1rem; }
+                .tagline { font-size: 0.9rem; }
+                .features { grid-template-columns: repeat(3, 1fr); }
+            }
+
+            @media (max-width: 420px) {
+                .logo { font-size: 1.8rem; }
+                .tagline { font-size: 0.85rem; }
+                .install { padding: 0.65rem 0.85rem; }
+                .install code { font-size: 0.7rem; }
+                .features { grid-template-columns: repeat(2, 1fr); }
+                main { padding: 1.5rem 1rem 1rem; }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="bg-glow"></div>
+
+        <main>
+            <div class="hero">
+                <div class="logo">📦 contup</div>
+                <p class="tagline">Prebuilt <strong>container runtime</strong> binaries for Linux.<br>No repos. No dependencies. Just <strong>static binaries</strong>.</p>
+            </div>
+
+            <div class="install">
+                <code><span class="dim">$</span> curl -fsSL diphyx.github.io/contup/setup.sh | bash</code>
+                <button onclick="copy(this)" aria-label="Copy">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="preview">
+                <img src="https://raw.githubusercontent.com/diphyx/contup/main/showcase/gif/setup.gif" alt="contup setup" />
+            </div>
+
+            <div class="features">
+                <div class="feature">
+                    <div class="feature-icon">🐳</div>
+                    <div class="feature-title">Docker + Podman</div>
+                    <div class="feature-desc">Both runtimes</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">👤</div>
+                    <div class="feature-title">Root & Rootless</div>
+                    <div class="feature-desc">No sudo required</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🔧</div>
+                    <div class="feature-title">Static Binaries</div>
+                    <div class="feature-desc">Official sources</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🔌</div>
+                    <div class="feature-title">Compose</div>
+                    <div class="feature-desc">Out of the box</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">✈️</div>
+                    <div class="feature-title">Offline Install</div>
+                    <div class="feature-desc">Air-gapped ready</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🚀</div>
+                    <div class="feature-title">No Pkg Manager</div>
+                    <div class="feature-desc">Works anywhere</div>
+                </div>
+            </div>
+
+        </main>
+
+        <footer>
+            <a href="https://github.com/diphyx/contup">GitHub</a>
+        </footer>
+
+        <script>
+            function copy(btn) {
+                navigator.clipboard.writeText("curl -fsSL diphyx.github.io/contup/setup.sh | bash");
+                const svg = btn.querySelector("svg");
+                svg.innerHTML = '<polyline points="20 6 9 17 4 12"/>';
+                setTimeout(() => {
+                    svg.innerHTML = '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>';
+                }, 1500);
+            }
+        </script>
+    </body>
+</html>

@@ -6,29 +6,40 @@ set -euo pipefail
 
 TAG="${RELEASE_TAG:?RELEASE_TAG is required}"
 
+# shellcheck source=../../versions.env
+source versions.env
+
 echo "==> Creating release ${TAG}..."
 
 gh release create "$TAG" \
-    --title "contup ${TAG}" \
+    --title "${TAG}" \
     --notes "$(cat <<EOF
-## contup ${TAG}
+## 📦 contup ${TAG}
 
 Prebuilt static container runtime binaries for Linux.
 
-### Download
+### 🧩 Included Versions
+
+| Component | Version |
+|---|---|
+| 🐳 Docker | \`${DOCKER_VERSION}\` |
+| 🦭 Podman | \`${PODMAN_VERSION}\` |
+| 🔌 Compose | \`${COMPOSE_VERSION}\` |
+
+### 📥 Download
 
 | Architecture | Tarball |
 |---|---|
 | x86_64 (amd64) | \`contup-${TAG}-amd64.tar.gz\` |
 | aarch64 (arm64) | \`contup-${TAG}-arm64.tar.gz\` |
 
-### Quick Install (Docker)
+### 🚀 Quick Install
 
 \`\`\`bash
 curl -fsSL https://raw.githubusercontent.com/diphyx/contup/main/contup.sh | bash
 \`\`\`
 
-### Verify
+### ✅ Verify Checksums
 
 \`\`\`bash
 sha256sum -c checksums.txt

@@ -5,7 +5,7 @@ set -euo pipefail
 # Prebuilt container runtime binaries + CLI management tool for Linux
 # https://github.com/diphyx/contup
 
-CONTUP_VERSION="2.0.1 (daca990)"
+CONTUP_VERSION="2.0.1 (12d8714)"
 GITHUB_REPO="diphyx/contup"
 GITHUB_API="https://api.github.com/repos/${GITHUB_REPO}"
 
@@ -924,12 +924,12 @@ configure_compose() {
 ## Shell
 
 file_remove() {
-    # Remove marked lines from a file in-place (pure bash, no sed).
+    # Remove marked lines from a file in-place (pure bash builtins only).
     # file_remove FILE MARKER          — remove lines containing MARKER
     # file_remove FILE MARKER MARKER_END — remove block between markers (inclusive)
     local file="$1" ms="$2" me="${3:-}"
     [[ -f "$file" ]] || return 0
-    local tmp="${file}.contup.tmp" inside=false
+    local inside=false output=""
     while IFS= read -r l || [[ -n "$l" ]]; do
         if [[ -n "$me" ]]; then
             if [[ "$inside" == true ]]; then
@@ -939,9 +939,9 @@ file_remove() {
         else
             [[ "$l" == *"$ms"* ]] && continue
         fi
-        printf '%s\n' "$l"
-    done < "$file" > "$tmp"
-    mv "$tmp" "$file"
+        output+="${l}"$'\n'
+    done < "$file"
+    printf '%s' "$output" > "$file"
 }
 
 update_shell_profile() {

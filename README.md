@@ -1,6 +1,6 @@
 # 📦 contup
 
-[![contup](https://img.shields.io/badge/contup-v2.0.1-green)](https://github.com/diphyx/contup/releases)
+[![contup](https://img.shields.io/badge/contup-v2.0.2-green)](https://github.com/diphyx/contup/releases)
 [![Docker](https://img.shields.io/badge/Docker-v29.2.1-blue)](https://github.com/moby/moby)
 [![Podman](https://img.shields.io/badge/Podman-v5.8.0-purple)](https://github.com/containers/podman)
 [![Compose](https://img.shields.io/badge/Compose-v5.0.2-blue)](https://github.com/docker/compose)

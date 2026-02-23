@@ -64,20 +64,18 @@ echo "  3) release  → push and trigger release workflow"
 echo ""
 read -rp "Select action [0-3]: " action
 
-case "$action" in
-    1|2|3)
-        git add "$SCRIPT"
-        git commit -m "Bump version to ${VERSION}"
-        git push origin main
-        echo ""
-        echo "==> Pushed ${TAG}"
-        ;;&
-    2)
-        gh workflow run build.yml -f version="$TAG"
-        echo "==> Triggered build workflow"
-        ;;
-    3)
-        gh workflow run release.yml -f version="$TAG"
-        echo "==> Triggered release workflow"
-        ;;
-esac
+if [[ "$action" =~ ^[1-3]$ ]]; then
+    git add -A
+    git commit -m "Bump version to ${VERSION}"
+    git push origin main
+    echo ""
+    echo "==> Pushed ${TAG}"
+fi
+
+if [[ "$action" == "2" ]]; then
+    gh workflow run build.yml -f version="$TAG"
+    echo "==> Triggered build workflow"
+elif [[ "$action" == "3" ]]; then
+    gh workflow run release.yml -f version="$TAG"
+    echo "==> Triggered release workflow"
+fi

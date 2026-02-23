@@ -5,7 +5,7 @@ set -euo pipefail
 # Prebuilt container runtime binaries + CLI management tool for Linux
 # https://github.com/diphyx/contup
 
-CONTUP_VERSION="2.0.1 (12d8714)"
+CONTUP_VERSION="2.0.1 (6d11c4c)"
 GITHUB_REPO="diphyx/contup"
 GITHUB_API="https://api.github.com/repos/${GITHUB_REPO}"
 
@@ -554,18 +554,17 @@ install_self() {
     mkdir -p "$BIN_DIR"
 
     if [[ -f "${src_dir}/contup.sh" ]]; then
-        cp "${src_dir}/contup.sh" "${BIN_DIR}/contup.sh"
+        cp "${src_dir}/contup.sh" "${BIN_DIR}/contup"
     else
         # curl | bash mode — download contup.sh from GitHub
         local url="https://raw.githubusercontent.com/${GITHUB_REPO}/main/contup.sh"
-        curl -fsSL -o "${BIN_DIR}/contup.sh" "$url" || {
-            print_warn "Failed to download contup.sh"
+        curl -fsSL -o "${BIN_DIR}/contup" "$url" || {
+            print_warn "Failed to download contup"
             return 1
         }
     fi
 
-    chmod +x "${BIN_DIR}/contup.sh"
-    ln -sf "${BIN_DIR}/contup.sh" "${BIN_DIR}/contup"
+    chmod +x "${BIN_DIR}/contup"
     print_ok "Installed contup to ${BIN_DIR}"
 }
 
@@ -716,6 +715,7 @@ After=default.target
 
 [Service]
 Type=notify
+NotifyAccess=all
 Environment=PATH=${BIN_DIR}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ExecStart=${BIN_DIR}/dockerd-rootless.sh
 Restart=on-failure
@@ -1004,7 +1004,7 @@ install_shell_wrapper() {
     local wrapper
     read -r -d '' wrapper <<'WRAPPER' || true
 contup() { # contup: shell-wrapper
-    command contup.sh "$@"; local _rc=$?
+    command contup "$@"; local _rc=$?
     if [[ "$1" == "switch" && $_rc -eq 0 ]]; then
         local _l; _l=$(grep '# contup: DOCKER_HOST' /etc/profile.d/contup.sh ~/.bashrc ~/.zshrc ~/.profile 2>/dev/null | head -1)
         [[ -n "$_l" ]] && eval "${_l#*:}"
@@ -1225,8 +1225,14 @@ cmd_setup() {
     install_shell_wrapper
 
     echo ""
-    print_box "${S_OK} contup CLI installed" \
-        "Next: ${C_BOLD}contup install${C_RESET} <docker|podman>"
+    if [[ ":${PATH}:" != *":${BIN_DIR}:"* ]]; then
+        print_box "${S_OK} contup CLI installed" \
+            "Run:  ${C_BOLD}export PATH=\"${BIN_DIR}:\$PATH\"${C_RESET}" \
+            "Then: ${C_BOLD}contup install${C_RESET} <docker|podman>"
+    else
+        print_box "${S_OK} contup CLI installed" \
+            "Next: ${C_BOLD}contup install${C_RESET} <docker|podman>"
+    fi
 }
 
 cmd_install() {

@@ -5,7 +5,7 @@ set -euo pipefail
 # Prebuilt container runtime binaries + CLI management tool for Linux
 # https://github.com/diphyx/contup
 
-CONTUP_VERSION="2.0.1 (a3d2c58)"
+CONTUP_VERSION="2.0.1 (c4de7dd)"
 GITHUB_REPO="diphyx/contup"
 GITHUB_API="https://api.github.com/repos/${GITHUB_REPO}"
 
@@ -941,7 +941,11 @@ file_remove() {
         fi
         printf '%s\n' "$l"
     done < "$file" > "$tmp"
-    [[ "$changed" == true ]] && mv "$tmp" "$file" || rm -f "$tmp"
+    if [[ "$changed" == true ]]; then
+        mv "$tmp" "$file"
+    else
+        rm -f "$tmp"
+    fi
 }
 
 update_shell_profile() {

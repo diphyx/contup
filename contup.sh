@@ -888,6 +888,27 @@ configure_compose() {
 
 ## Shell
 
+file_remove() {
+    # Remove marked lines from a file in-place (pure bash, no sed).
+    # file_remove FILE MARKER          — remove lines containing MARKER
+    # file_remove FILE MARKER MARKER_END — remove block between markers (inclusive)
+    local file="$1" ms="$2" me="${3:-}"
+    [[ -f "$file" ]] || return 0
+    local tmp="${file}.contup.tmp" inside=false changed=false
+    while IFS= read -r l || [[ -n "$l" ]]; do
+        if [[ -n "$me" ]]; then
+            if [[ "$inside" == true ]]; then
+                [[ "$l" == *"$me"* ]] && inside=false; continue
+            fi
+            [[ "$l" == *"$ms"* ]] && inside=true && changed=true && continue
+        else
+            [[ "$l" == *"$ms"* ]] && changed=true && continue
+        fi
+        printf '%s\n' "$l"
+    done < "$file" > "$tmp"
+    [[ "$changed" == true ]] && mv "$tmp" "$file" || rm -f "$tmp"
+}
+
 update_shell_profile() {
     local var_name="$1" var_value="$2"
     local marker="# contup: ${var_name}"
@@ -897,15 +918,13 @@ update_shell_profile() {
         local profile="/etc/profile.d/contup.sh"
         mkdir -p /etc/profile.d
         # Remove old entry
-        if [[ -f "$profile" ]]; then
-            sed -i "/${marker}/d" "$profile"
-        fi
+        file_remove "$profile" "$marker"
         echo "$line" >> "$profile"
         print_ok "Set ${var_name} in ${profile}"
     else
         for rc in "${HOME}/.bashrc" "${HOME}/.zshrc" "${HOME}/.profile"; do
             if [[ -f "$rc" ]]; then
-                sed -i "/${marker}/d" "$rc"
+                file_remove "$rc" "$marker"
                 echo "$line" >> "$rc"
             fi
         done
@@ -922,18 +941,14 @@ remove_shell_profile_var() {
 
     if [[ "$IS_ROOT" == true ]]; then
         local profile="/etc/profile.d/contup.sh"
-        if [[ -f "$profile" ]]; then
-            sed -i "/${marker}/d" "$profile"
-            # Remove file if empty
-            if [[ ! -s "$profile" ]]; then
-                rm -f "$profile"
-            fi
+        file_remove "$profile" "$marker"
+        # Remove file if empty
+        if [[ -f "$profile" ]] && [[ ! -s "$profile" ]]; then
+            rm -f "$profile"
         fi
     else
         for rc in "${HOME}/.bashrc" "${HOME}/.zshrc" "${HOME}/.profile"; do
-            if [[ -f "$rc" ]]; then
-                sed -i "/${marker}/d" "$rc"
-            fi
+            file_remove "$rc" "$marker"
         done
     fi
 }
@@ -966,14 +981,12 @@ WRAPPER
     if [[ "$IS_ROOT" == true ]]; then
         local profile="/etc/profile.d/contup.sh"
         mkdir -p /etc/profile.d
-        if [[ -f "$profile" ]]; then
-            sed -i "/${marker}/,/${marker_end}/d" "$profile"
-        fi
+        file_remove "$profile" "$marker" "$marker_end"
         echo "$wrapper" >> "$profile"
     else
         for rc in "${HOME}/.bashrc" "${HOME}/.zshrc" "${HOME}/.profile"; do
             if [[ -f "$rc" ]]; then
-                sed -i "/${marker}/,/${marker_end}/d" "$rc"
+                file_remove "$rc" "$marker" "$marker_end"
                 echo "$wrapper" >> "$rc"
             fi
         done
@@ -987,17 +1000,13 @@ remove_shell_wrapper() {
 
     if [[ "$IS_ROOT" == true ]]; then
         local profile="/etc/profile.d/contup.sh"
-        if [[ -f "$profile" ]]; then
-            sed -i "/${marker}/,/${marker_end}/d" "$profile"
-            if [[ ! -s "$profile" ]]; then
-                rm -f "$profile"
-            fi
+        file_remove "$profile" "$marker" "$marker_end"
+        if [[ -f "$profile" ]] && [[ ! -s "$profile" ]]; then
+            rm -f "$profile"
         fi
     else
         for rc in "${HOME}/.bashrc" "${HOME}/.zshrc" "${HOME}/.profile"; do
-            if [[ -f "$rc" ]]; then
-                sed -i "/${marker}/,/${marker_end}/d" "$rc"
-            fi
+            file_remove "$rc" "$marker" "$marker_end"
         done
     fi
 }
@@ -1969,7 +1978,8 @@ cmd_info() {
 
             images=$(docker info --format '{{.Images}}' 2>/dev/null || echo "?")
             volumes=$(docker volume ls -q 2>/dev/null | wc -l | tr -d ' ')
-            disk_usage=$(docker system df --format 'table {{.Type}}: {{.Size}}' 2>/dev/null | tr '\n' ', ' | sed 's/, $//' || echo "?")
+            disk_usage=$(docker system df --format 'table {{.Type}}: {{.Size}}' 2>/dev/null | tr '\n' ', ' || echo "?")
+            disk_usage="${disk_usage%, }"
 
             lines+=("Docker:         v${ver}   ${state}")
             lines+=("  Storage:      ${storage}")
@@ -2014,7 +2024,8 @@ cmd_info() {
 
             images=$(podman images --format '{{.ID}}' 2>/dev/null | wc -l | tr -d ' ')
             volumes=$(podman volume ls -q 2>/dev/null | wc -l | tr -d ' ')
-            disk_usage=$(podman system df --format 'table {{.Type}}: {{.Size}}' 2>/dev/null | tr '\n' ', ' | sed 's/, $//' || echo "?")
+            disk_usage=$(podman system df --format 'table {{.Type}}: {{.Size}}' 2>/dev/null | tr '\n' ', ' || echo "?")
+            disk_usage="${disk_usage%, }"
 
             lines+=("Podman:         v${ver}   ${state}")
             lines+=("  Storage:      ${storage}")

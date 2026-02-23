@@ -1790,24 +1790,18 @@ cmd_test() {
 
         # Test 3: nginx port mapping
         local container_id
-        container_id=$($cmd run -d -p 0:80 nginx 2>/dev/null) || true
-        if [[ -n "$container_id" ]]; then
+        if container_id=$($cmd run -d -p 8199:80 nginx:alpine 2>&1); then
             sleep 2
-            local port
-            port=$($cmd port "$container_id" 80 2>/dev/null | head -1 | grep -oE '[0-9]+$')
-            if [[ -n "$port" ]] && curl -sf "http://localhost:${port}" &>/dev/null; then
+            if curl -sf "http://localhost:8199" &>/dev/null; then
                 print_ok "nginx port map"
                 ((pass++)) || true
-            elif [[ -z "$port" ]]; then
-                print_fail "nginx port map — could not resolve mapped port"
-                ((fail++)) || true
             else
-                print_fail "nginx port map — localhost:${port} not responding"
+                print_fail "nginx port map — localhost:8199 not responding"
                 ((fail++)) || true
             fi
             $cmd rm -f "$container_id" &>/dev/null || true
         else
-            print_fail "nginx port map — failed to start container"
+            print_fail "nginx port map — ${container_id##*$'\n'}"
             ((fail++)) || true
         fi
 
@@ -1827,7 +1821,7 @@ services:
   web:
     image: nginx:alpine
     ports:
-      - "0:80"
+      - "8198:80"
 COMPOSEYML
             if err=$(cd "$tmpdir" && $compose_cmd up -d 2>&1 && sleep 2 && $compose_cmd down 2>&1); then
                 print_ok "compose up/down"

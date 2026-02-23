@@ -103,6 +103,9 @@ if [[ "$RUNTIME" != "docker" ]]; then
     cat > /etc/containers/containers.conf <<EOF
 [engine]
 helper_binaries_dir = ["${BIN_DIR}"]
+
+[engine.runtimes]
+crun = ["${BIN_DIR}/crun"]
 EOF
     cat > /etc/containers/registries.conf <<'EOF'
 unqualified-search-registries = ["docker.io"]

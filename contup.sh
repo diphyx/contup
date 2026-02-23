@@ -5,7 +5,7 @@ set -euo pipefail
 # Prebuilt container runtime binaries + CLI management tool for Linux
 # https://github.com/diphyx/contup
 
-CONTUP_VERSION="2.0.0 (80ada1d)"
+CONTUP_VERSION="2.0.0 (eee94f3)"
 GITHUB_REPO="diphyx/contup"
 GITHUB_API="https://api.github.com/repos/${GITHUB_REPO}"
 
@@ -563,6 +563,9 @@ write_containers_conf() {
 
 [engine]
 helper_binaries_dir = ["${BIN_DIR}"]
+
+[engine.runtimes]
+crun = ["${BIN_DIR}/crun"]
 
 [network]
 EOF

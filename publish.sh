@@ -68,7 +68,7 @@ action="${action:-0}"
 
 if [[ "$action" =~ ^[1-3]$ ]]; then
     git add -A
-    git commit -m "Bump version to ${NEW}"
+    git commit -m "Bump version to ${VERSION} ${HASH}"
     git push origin main
     echo ""
     echo "==> Pushed ${TAG}"

@@ -67,6 +67,17 @@ run_step "contup restart ${RUNTIME}" $CONTUP restart "$RUNTIME"
 
 run_step "contup switch ${RUNTIME}" $CONTUP switch "$RUNTIME"
 
+# ─── Pre-uninstall cleanup (CI only: release overlay mounts) ───
+
+if [[ "$RUNTIME" == "podman" || "$RUNTIME" == "both" ]]; then
+    podman rm -af 2>/dev/null || true
+    podman system prune -af 2>/dev/null || true
+fi
+if [[ "$RUNTIME" == "docker" || "$RUNTIME" == "both" ]]; then
+    docker rm -af 2>/dev/null || true
+    docker system prune -af 2>/dev/null || true
+fi
+
 # ─── Uninstall ───
 
 run_step "contup uninstall ${RUNTIME}" $CONTUP uninstall "$RUNTIME" -y

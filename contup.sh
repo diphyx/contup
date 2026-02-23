@@ -602,6 +602,7 @@ helper_binaries_dir = ["${BIN_DIR}"]
 crun = ["${BIN_DIR}/crun"]
 
 [network]
+default_rootless_network_cmd = "slirp4netns"
 EOF
     print_ok "Configured ${dir}/containers.conf"
 }

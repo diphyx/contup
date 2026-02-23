@@ -5,7 +5,7 @@ set -euo pipefail
 # Prebuilt container runtime binaries + CLI management tool for Linux
 # https://github.com/diphyx/contup
 
-CONTUP_VERSION="2.0.0 (bd532b6)"
+CONTUP_VERSION="2.0.0 (fc87af5)"
 GITHUB_REPO="diphyx/contup"
 GITHUB_API="https://api.github.com/repos/${GITHUB_REPO}"
 
@@ -1770,20 +1770,21 @@ cmd_test() {
         fi
 
         # Test 1: hello-world
-        if $cmd run --rm hello-world &>/dev/null; then
+        local err
+        if err=$($cmd run --rm hello-world 2>&1); then
             print_ok "hello-world"
             ((pass++)) || true
         else
-            print_fail "hello-world"
+            print_fail "hello-world — ${err##*$'\n'}"
             ((fail++)) || true
         fi
 
         # Test 2: alpine echo
-        if $cmd run --rm alpine echo "contup test ok" &>/dev/null; then
+        if err=$($cmd run --rm alpine echo "contup test ok" 2>&1); then
             print_ok "alpine echo"
             ((pass++)) || true
         else
-            print_fail "alpine echo"
+            print_fail "alpine echo — ${err##*$'\n'}"
             ((fail++)) || true
         fi
 
@@ -1793,17 +1794,20 @@ cmd_test() {
         if [[ -n "$container_id" ]]; then
             sleep 2
             local port
-            port=$($cmd port "$container_id" 80 2>/dev/null | head -1 | cut -d: -f2)
+            port=$($cmd port "$container_id" 80 2>/dev/null | head -1 | grep -oE '[0-9]+$')
             if [[ -n "$port" ]] && curl -sf "http://localhost:${port}" &>/dev/null; then
                 print_ok "nginx port map"
                 ((pass++)) || true
+            elif [[ -z "$port" ]]; then
+                print_fail "nginx port map — could not resolve mapped port"
+                ((fail++)) || true
             else
-                print_fail "nginx port map"
+                print_fail "nginx port map — localhost:${port} not responding"
                 ((fail++)) || true
             fi
             $cmd rm -f "$container_id" &>/dev/null || true
         else
-            print_fail "nginx port map"
+            print_fail "nginx port map — failed to start container"
             ((fail++)) || true
         fi
 
@@ -1825,11 +1829,11 @@ services:
     ports:
       - "0:80"
 COMPOSEYML
-            if (cd "$tmpdir" && $compose_cmd up -d &>/dev/null && sleep 2 && $compose_cmd down &>/dev/null); then
+            if err=$(cd "$tmpdir" && $compose_cmd up -d 2>&1 && sleep 2 && $compose_cmd down 2>&1); then
                 print_ok "compose up/down"
                 ((pass++)) || true
             else
-                print_fail "compose up/down"
+                print_fail "compose up/down — ${err##*$'\n'}"
                 ((fail++)) || true
                 (cd "$tmpdir" && $compose_cmd down &>/dev/null 2>&1 || true)
             fi

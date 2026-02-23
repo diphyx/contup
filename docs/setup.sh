@@ -5,7 +5,7 @@ set -euo pipefail
 # Prebuilt container runtime binaries + CLI management tool for Linux
 # https://github.com/diphyx/contup
 
-CONTUP_VERSION="2.0.1 (bab3559)"
+CONTUP_VERSION="2.0.1 (c5a8629)"
 GITHUB_REPO="diphyx/contup"
 GITHUB_API="https://api.github.com/repos/${GITHUB_REPO}"
 
@@ -602,6 +602,7 @@ helper_binaries_dir = ["${BIN_DIR}"]
 crun = ["${BIN_DIR}/crun"]
 
 [network]
+default_rootless_network_cmd = "slirp4netns"
 EOF
     print_ok "Configured ${dir}/containers.conf"
 }
@@ -1005,7 +1006,7 @@ install_shell_wrapper() {
     local wrapper
     read -r -d '' wrapper <<'WRAPPER' || true
 contup() { # contup: shell-wrapper
-    command contup "$@"; local _rc=$?
+    CONTUP_WRAPPER=1 command contup "$@"; local _rc=$?
     if [[ "$1" == "switch" && $_rc -eq 0 ]]; then
         local _l; _l=$(grep '# contup: DOCKER_HOST' /etc/profile.d/contup.sh ~/.bashrc ~/.zshrc ~/.profile 2>/dev/null | head -1)
         [[ -n "$_l" ]] && eval "${_l#*:}"
@@ -1568,7 +1569,10 @@ cmd_uninstall() {
             fi
             for d in "${docker_dirs[@]}"; do
                 umount -R "$d" 2>/dev/null || true
-                rm -rf "$d"
+                if [[ "$IS_ROOT" != true ]] && command -v rootlesskit &>/dev/null; then
+                    rootlesskit rm -rf "$d" 2>/dev/null || true
+                fi
+                rm -rf "$d" 2>/dev/null || true
             done
             print_ok "Removed Docker data"
         fi
@@ -1580,7 +1584,10 @@ cmd_uninstall() {
                 podman_dir="${HOME}/.local/share/containers"
             fi
             umount -R "$podman_dir" 2>/dev/null || true
-            rm -rf "$podman_dir"
+            if [[ "$IS_ROOT" != true ]] && command -v rootlesskit &>/dev/null; then
+                rootlesskit rm -rf "$podman_dir" 2>/dev/null || true
+            fi
+            rm -rf "$podman_dir" 2>/dev/null || true
             print_ok "Removed Podman data"
         fi
     fi
@@ -1788,8 +1795,16 @@ cmd_switch() {
     esac
 
     echo ""
-    print_box "${S_OK} Switched to ${target^}" \
-        "DOCKER_HOST=${socket}"
+    if [[ -n "${CONTUP_WRAPPER:-}" ]]; then
+        print_box "${S_OK} Switched to ${target^}" \
+            "DOCKER_HOST=${socket}"
+    else
+        print_box "${S_OK} Switched to ${target^}" \
+            "DOCKER_HOST=${socket}" \
+            "" \
+            "Run: ${C_BOLD}export DOCKER_HOST=\"${socket}\"${C_RESET}" \
+            "Or restart your shell to apply"
+    fi
 }
 
 cmd_test() {

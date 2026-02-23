@@ -29,6 +29,7 @@ cp /tmp/tini/docker-init                           "${BUNDLE}/docker/"
 # Docker rootless
 cp /tmp/rootlesskit/rootlesskit                    "${BUNDLE}/docker-rootless/"
 cp /tmp/dockerd-rootless.sh                        "${BUNDLE}/docker-rootless/"
+cp /tmp/slirp4netns/slirp4netns                    "${BUNDLE}/docker-rootless/"
 fi
 
 # Compose

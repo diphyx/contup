@@ -11,7 +11,7 @@ GITHUB_API="https://api.github.com/repos/${GITHUB_REPO}"
 
 # Binaries
 DOCKER_BINARIES="docker dockerd containerd containerd-shim-runc-v2 runc docker-proxy docker-init"
-DOCKER_ROOTLESS_BINARIES="dockerd-rootless.sh rootlesskit"
+DOCKER_ROOTLESS_BINARIES="dockerd-rootless.sh rootlesskit slirp4netns"
 COMPOSE_BINARY="docker-compose"
 PODMAN_BINARIES="podman crun conmon netavark aardvark-dns slirp4netns fuse-overlayfs"
 
@@ -325,6 +325,29 @@ check_newuidmap() {
         [[ -n "$hint" ]] && print_dim "  Install: ${hint}"
         return 1
     fi
+}
+
+check_userns() {
+    if [[ "$IS_ROOT" == true ]]; then
+        return 0
+    fi
+    local restrict
+    restrict=$(sysctl -n kernel.apparmor_restrict_unprivileged_userns 2>/dev/null || echo "0")
+    if [[ "$restrict" == "1" ]]; then
+        print_fail "AppArmor blocks unprivileged user namespaces"
+        print_dim "  Fix: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0"
+        return 1
+    fi
+    if [[ -f /proc/sys/kernel/unprivileged_userns_clone ]]; then
+        local userns
+        userns=$(cat /proc/sys/kernel/unprivileged_userns_clone)
+        if [[ "$userns" != "1" ]]; then
+            print_fail "Unprivileged user namespaces disabled"
+            print_dim "  Fix: sudo sysctl -w kernel.unprivileged_userns_clone=1"
+            return 1
+        fi
+    fi
+    print_ok "User namespaces available"
 }
 
 check_existing_install() {
@@ -693,6 +716,7 @@ After=default.target
 
 [Service]
 Type=notify
+Environment=PATH=${BIN_DIR}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ExecStart=${BIN_DIR}/dockerd-rootless.sh
 Restart=on-failure
 RestartSec=5
@@ -1220,6 +1244,7 @@ cmd_install() {
     check_iptables
     check_systemd || ((errors++))
     check_newuidmap || ((errors++))
+    check_userns || ((errors++))
 
     echo ""
     print_box "System Summary" \
@@ -1564,7 +1589,10 @@ cmd_uninstall() {
         update_shell_profile "DOCKER_HOST" "$DOCKER_HOST_SOCKET"
         print_ok "Switched DOCKER_HOST to Docker"
     else
+        remove_shell_profile_var "PATH"
         remove_shell_wrapper
+        print_ok "Cleaned up shell profiles"
+        print_dim "Restart your shell to clear environment variables"
     fi
 
     echo ""

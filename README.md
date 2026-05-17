@@ -1,9 +1,9 @@
 # 📦 dockpod
 
-[![dockpod](https://img.shields.io/badge/dockpod-v3.0.0-green)](https://github.com/diphyx/dockpod/releases)
-[![Docker](https://img.shields.io/badge/Docker-v29.2.1-blue)](https://github.com/moby/moby)
-[![Podman](https://img.shields.io/badge/Podman-v5.8.0-purple)](https://github.com/containers/podman)
-[![Compose](https://img.shields.io/badge/Compose-v5.0.2-blue)](https://github.com/docker/compose)
+[![dockpod](https://img.shields.io/badge/dockpod-v3.1.0-green)](https://github.com/diphyx/dockpod/releases)
+[![Docker](https://img.shields.io/badge/Docker-v29.4.3-blue)](https://github.com/moby/moby)
+[![Podman](https://img.shields.io/badge/Podman-v5.8.2-purple)](https://github.com/containers/podman)
+[![Compose](https://img.shields.io/badge/Compose-v5.1.3-blue)](https://github.com/docker/compose)
 
 > **dock**er + **pod**man, quick setup — Prebuilt container runtime binaries for Linux with an interactive installer.
 

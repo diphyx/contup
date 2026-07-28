@@ -5,7 +5,7 @@ set -euo pipefail
 # Prebuilt container runtime binaries + CLI management tool for Linux
 # https://github.com/diphyx/dockpod
 
-DOCKPOD_VERSION="4.0.0 (4e1264c)"
+DOCKPOD_VERSION="4.0.0 (cfb2a0f)"
 GITHUB_REPO="diphyx/dockpod"
 GITHUB_API="https://api.github.com/repos/${GITHUB_REPO}"
 

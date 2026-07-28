@@ -37,7 +37,17 @@ chmod +x "$DOCKPOD"
 
 # ─── Install ───
 
-run_step "dockpod install ${RUNTIME}" $DOCKPOD install "$RUNTIME" -y
+# Buildx is opt-in and Docker-only
+INSTALL_FLAGS=(-y)
+if [[ "$RUNTIME" != "podman" ]]; then
+    INSTALL_FLAGS+=(--with-buildx)
+fi
+
+run_step "dockpod install ${RUNTIME}" $DOCKPOD install "$RUNTIME" "${INSTALL_FLAGS[@]}"
+
+if [[ "$RUNTIME" != "podman" ]]; then
+    run_step "docker buildx version" docker buildx version
+fi
 
 # ─── Test ───
 
@@ -81,6 +91,15 @@ fi
 # ─── Uninstall ───
 
 run_step "dockpod uninstall ${RUNTIME}" $DOCKPOD uninstall "$RUNTIME" -y
+
+if [[ "$RUNTIME" != "podman" ]]; then
+    echo "==> buildx removed..."
+    if command -v docker-buildx &>/dev/null; then
+        fail "buildx removed"
+    else
+        ok "buildx removed"
+    fi
+fi
 
 # ─── Cleanup ───
 

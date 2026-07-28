@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Quick smoke test for built binaries (runs in build job, amd64 only).
+# Quick smoke test for the staged binaries (runs in the bundle job, amd64 only).
 # Verifies daemons start and can run a container.
-# Optional: RUNTIME=docker|podman|both (default: both)
+# Usage: test-binaries.sh [bundle-dir]
 
-RUNTIME="${RUNTIME:-both}"
-COMPOSE="${COMPOSE:-true}"
-BUILDX="${BUILDX:-true}"
+BUNDLE="${1:-/tmp/dockpod-bundle}"
 BIN_DIR="/usr/local/bin"
+PLUGIN_DIR="/usr/local/lib/docker/cli-plugins"
 
 pass=0
 fail=0
@@ -27,55 +26,34 @@ run_test() {
     fi
 }
 
-# ─── Install Docker binaries ───
+install_dir() {
+    local subdir="$1"
+    [[ -d "${BUNDLE}/${subdir}" ]] || return 0
+    echo "==> Installing ${subdir} binaries..."
+    local f
+    for f in "${BUNDLE}/${subdir}"/*; do
+        cp "$f" "$BIN_DIR/"
+        chmod +x "${BIN_DIR}/$(basename "$f")"
+    done
+}
 
-if [[ "$RUNTIME" != "podman" ]]; then
-    echo "==> Installing Docker binaries..."
-    cp /tmp/docker-cli/docker /tmp/moby/dockerd /tmp/moby/docker-proxy \
-       /tmp/containerd/bin/containerd /tmp/containerd/bin/containerd-shim-runc-v2 \
-       /tmp/runc/runc /tmp/tini/docker-init \
-       /tmp/rootlesskit/rootlesskit /tmp/dockerd-rootless.sh \
-       "$BIN_DIR/"
-    chmod +x "$BIN_DIR"/{docker,dockerd,docker-proxy,containerd,containerd-shim-runc-v2,runc,docker-init}
-    chmod +x "$BIN_DIR"/{rootlesskit,dockerd-rootless.sh}
+# ─── Install staged binaries ───
 
-    if [[ "$BUILDX" != "false" ]]; then
-        echo "==> Installing Buildx binary..."
-        cp /tmp/buildx/docker-buildx "$BIN_DIR/"
-        chmod +x "$BIN_DIR"/docker-buildx
-    fi
-fi
-
-# ─── Install Compose binary ───
-
-if [[ "$COMPOSE" != "false" ]]; then
-    echo "==> Installing Compose binary..."
-    cp /tmp/compose/docker-compose "$BIN_DIR/"
-    chmod +x "$BIN_DIR"/docker-compose
-fi
-
-# ─── Install Podman binaries ───
-
-if [[ "$RUNTIME" != "docker" ]]; then
-    echo "==> Installing Podman binaries..."
-    cp /tmp/podman/bin/podman /tmp/crun/crun /tmp/conmon/bin/conmon \
-       /tmp/netavark/netavark /tmp/aardvark-dns/aardvark-dns \
-       /tmp/slirp4netns/slirp4netns /tmp/fuse-overlayfs/fuse-overlayfs \
-       "$BIN_DIR/"
-    chmod +x "$BIN_DIR"/{podman,crun,conmon,netavark,aardvark-dns,slirp4netns,fuse-overlayfs}
-fi
+install_dir docker
+install_dir docker-rootless
+install_dir compose
+install_dir buildx
+install_dir podman
 
 # ─── Configure Docker ───
 
-if [[ "$RUNTIME" != "podman" ]]; then
-    if [[ "$COMPOSE" != "false" ]]; then
-        mkdir -p /usr/local/lib/docker/cli-plugins
-        ln -sf "$BIN_DIR/docker-compose" /usr/local/lib/docker/cli-plugins/docker-compose
+if [[ -d "${BUNDLE}/docker" ]]; then
+    mkdir -p "$PLUGIN_DIR"
+    if [[ -f "${BIN_DIR}/docker-compose" ]]; then
+        ln -sf "${BIN_DIR}/docker-compose" "${PLUGIN_DIR}/docker-compose"
     fi
-
-    if [[ "$BUILDX" != "false" ]]; then
-        mkdir -p /usr/local/lib/docker/cli-plugins
-        ln -sf "$BIN_DIR/docker-buildx" /usr/local/lib/docker/cli-plugins/docker-buildx
+    if [[ -f "${BIN_DIR}/docker-buildx" ]]; then
+        ln -sf "${BIN_DIR}/docker-buildx" "${PLUGIN_DIR}/docker-buildx"
     fi
 
     mkdir -p /etc/docker
@@ -110,7 +88,7 @@ fi
 
 # ─── Configure Podman ───
 
-if [[ "$RUNTIME" != "docker" ]]; then
+if [[ -d "${BUNDLE}/podman" ]]; then
     mkdir -p /etc/containers
     cat > /etc/containers/containers.conf <<EOF
 [engine]
@@ -134,7 +112,7 @@ fi
 
 # ─── Test Docker ───
 
-if [[ "$RUNTIME" != "podman" ]]; then
+if [[ -d "${BUNDLE}/docker" ]]; then
     echo "==> Testing Docker..."
     systemctl daemon-reload
     systemctl start containerd docker
@@ -142,10 +120,12 @@ if [[ "$RUNTIME" != "podman" ]]; then
     for i in $(seq 1 30); do docker info &>/dev/null && break; sleep 1; done
 
     run_test "docker run" docker run --rm hello-world
-    if [[ "$COMPOSE" != "false" ]]; then
+
+    if [[ -f "${BIN_DIR}/docker-compose" ]]; then
         run_test "docker compose" docker compose version
     fi
-    if [[ "$BUILDX" != "false" ]]; then
+
+    if [[ -f "${BIN_DIR}/docker-buildx" ]]; then
         mkdir -p /tmp/buildx-test
         cat > /tmp/buildx-test/Dockerfile <<'EOF'
 FROM alpine
@@ -161,7 +141,7 @@ fi
 
 # ─── Test Podman ───
 
-if [[ "$RUNTIME" != "docker" ]]; then
+if [[ -d "${BUNDLE}/podman" ]]; then
     echo "==> Testing Podman..."
     run_test "podman run" podman run --rm hello-world
 

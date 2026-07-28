@@ -32,6 +32,7 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
+          pattern: dockpod-*
           path: artifacts
           merge-multiple: true
 

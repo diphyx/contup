@@ -65,11 +65,31 @@ env:
   RUST_VERSION: "stable"
 
 jobs:
-  build:
+  plan:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      arches: ${{ steps.plan.outputs.arches }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Plan build matrix
+        id: plan
+        env:
+          PLATFORM: ${{ inputs.platform || 'both' }}
+          RUNTIME: ${{ inputs.runtime || 'both' }}
+          COMPOSE: ${{ inputs.compose }}
+          BUILDX: ${{ inputs.buildx }}
+        run: .github/scripts/plan-matrix.sh
+
+  build:
+    needs: plan
+    name: build (${{ matrix.arch }} / ${{ matrix.component }})
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     strategy:
-      matrix:
-        arch: ${{ inputs.platform == 'amd64' && fromJSON('["amd64"]') || inputs.platform == 'arm64' && fromJSON('["arm64"]') || fromJSON('["amd64", "arm64"]') }}
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
 
     steps:
       - uses: actions/checkout@v4
@@ -78,39 +98,107 @@ jobs:
         run: .github/scripts/load-versions.sh
 
       - name: Setup Go
+        if: matrix.go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false
 
       - name: Setup Rust
-        if: inputs.runtime != 'docker'
+        if: matrix.rust
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
           targets: ${{ matrix.arch == 'arm64' && 'aarch64-unknown-linux-musl' || 'x86_64-unknown-linux-musl' }}
 
-      - name: Setup build environment
-        run: .github/scripts/setup-env.sh "${{ matrix.arch }}"
+      - name: Cache Go build
+        if: matrix.go
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/go-build
+          key: go-${{ matrix.arch }}-${{ matrix.component }}-${{ hashFiles('versions.env') }}
+          restore-keys: |
+            go-${{ matrix.arch }}-${{ matrix.component }}-
 
-      - name: Build binaries
+      - name: Cache Cargo registry
+        if: matrix.rust
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargo-registry-${{ matrix.arch }}-${{ hashFiles('versions.env') }}
+          restore-keys: |
+            cargo-registry-${{ matrix.arch }}-
+
+      # Exact key only — cargo decides freshness by mtime, and sources are
+      # re-extracted with upstream timestamps. Falling back to an older
+      # version's target dir could pass a stale binary off as the new one.
+      - name: Cache Cargo build
+        if: matrix.rust
+        uses: actions/cache@v4
+        with:
+          path: |
+            /tmp/netavark/target
+            /tmp/aardvark-dns/target
+          key: cargo-build-${{ matrix.arch }}-${{ hashFiles('versions.env') }}
+
+      - name: Setup build environment
+        run: .github/scripts/setup-env.sh "${{ matrix.arch }}" "${{ matrix.apt }}"
+
+      - name: Build ${{ matrix.component }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          RUNTIME: ${{ inputs.runtime || 'both' }}
-          COMPOSE: ${{ inputs.compose }}
-          BUILDX: ${{ inputs.buildx }}
+          COMPONENT: ${{ matrix.component }}
         run: .github/scripts/build-binaries.sh
+
+      - name: Stage binaries
+        run: .github/scripts/stage-binaries.sh "${{ matrix.component }}"
+
+      # tar keeps the executable bit, which artifact upload would drop
+      - name: Pack part
+        run: tar -cf /tmp/part.tar -C /tmp/dockpod-bundle .
+
+      - name: Upload part
+        uses: actions/upload-artifact@v4
+        with:
+          name: part-${{ matrix.arch }}-${{ matrix.component }}
+          path: /tmp/part.tar
+          retention-days: 1
+
+  bundle:
+    needs: [plan, build]
+    name: bundle (${{ matrix.arch }})
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: ${{ fromJSON(needs.plan.outputs.arches) }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download parts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: part-${{ matrix.arch }}-*
+          path: /tmp/parts
+
+      - name: Unpack parts
+        run: |
+          mkdir -p /tmp/dockpod-bundle
+          for part in /tmp/parts/*/part.tar; do
+              echo "  ${part}"
+              tar -xf "$part" -C /tmp/dockpod-bundle
+          done
+          find /tmp/dockpod-bundle -type f | sort
 
       - name: Test binaries
         if: matrix.arch == 'amd64'
-        env:
-          RUNTIME: ${{ inputs.runtime || 'both' }}
-          COMPOSE: ${{ inputs.compose }}
-          BUILDX: ${{ inputs.buildx }}
-        run: sudo -E .github/scripts/test-binaries.sh
+        run: sudo .github/scripts/test-binaries.sh
 
       - name: Bundle tarball
-        run: .github/scripts/bundle-tarball.sh "${{ inputs.version || 'dev' }}" "${{ matrix.arch }}" "${{ inputs.runtime || 'both' }}" "${{ inputs.compose }}" "${{ inputs.buildx }}"
+        run: .github/scripts/bundle-tarball.sh "${{ inputs.version || 'dev' }}" "${{ matrix.arch }}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

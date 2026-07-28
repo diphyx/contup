@@ -67,18 +67,60 @@ The build pipeline is fully automated via GitHub Actions with three workflows:
 
 ### Pipeline Stages
 
+Each component builds in its own job, so wall-clock time is the slowest single
+component rather than the sum of all of them. amd64 runs on `ubuntu-latest`,
+arm64 natively on `ubuntu-24.04-arm` — no cross-compilation.
+
 ```
-Build                          Verify                    Release
- ├─ Load versions              ├─ Download artifact      ├─ Download artifacts
- ├─ Setup Go + Rust            ├─ Find tarball            ├─ Create checksums
- ├─ Build binaries             └─ Verify dockpod           └─ Create GitHub release
- ├─ Test binaries (amd64)          ├─ install
- ├─ Bundle tarball                 ├─ test
- └─ Upload artifact                ├─ status / info
-                                   ├─ stop / start / restart
-                                   ├─ switch
-                                   └─ uninstall
+Plan            Build (arch × component, parallel)   Bundle (per arch)
+ └─ plan-matrix  ├─ docker-cli                        ├─ Download parts
+                 ├─ moby                              ├─ Unpack parts
+                 ├─ containerd                        ├─ Test binaries (amd64)
+                 ├─ docker-extras                     ├─ Bundle tarball
+                 ├─ buildx                            └─ Upload artifact
+                 ├─ compose
+                 ├─ podman            each job:
+                 ├─ podman-extras      load versions → toolchain → cache
+                 └─ podman-net         → build → stage → upload part
 ```
+
+```
+Verify                    Release
+ ├─ Download artifact      ├─ Download artifacts
+ ├─ Find tarball           ├─ Create checksums
+ └─ Verify dockpod         └─ Create GitHub release
+     ├─ install (--with-buildx on docker)
+     ├─ test
+     ├─ status / info
+     ├─ stop / start / restart
+     ├─ switch
+     └─ uninstall
+```
+
+### Components
+
+| Component       | Produces                                              | Toolchain  |
+| --------------- | ----------------------------------------------------- | ---------- |
+| `docker-cli`    | `docker`                                              | Go         |
+| `moby`          | `dockerd`, `docker-proxy`, `dockerd-rootless.sh`      | Go + CGO   |
+| `containerd`    | `containerd`, `containerd-shim-runc-v2`               | Go         |
+| `docker-extras` | `runc`, `docker-init`, `rootlesskit`, `slirp4netns`   | Go + C     |
+| `buildx`        | `docker-buildx`                                       | Go         |
+| `compose`       | `docker-compose`                                      | Go         |
+| `podman`        | `podman`                                              | Go + CGO   |
+| `podman-extras` | `crun`, `conmon`, `slirp4netns`, `fuse-overlayfs`     | C          |
+| `podman-net`    | `netavark`, `aardvark-dns`                            | Rust       |
+
+Run a single component locally with `COMPONENT=<name> .github/scripts/build-binaries.sh`,
+or the whole set with `COMPONENT=all` (honors `RUNTIME` / `COMPOSE` / `BUILDX`).
+`stage-binaries.sh` then copies the results into the release layout, and
+`bundle-tarball.sh` strips and packs whatever is staged.
+
+### Caching
+
+`GOCACHE` is cached per arch and component, the Cargo registry and Rust target
+dirs per arch — both keyed on a hash of `versions.env`, so a rebuild at
+unchanged versions reuses compiled packages.
 
 ### Build Approach
 

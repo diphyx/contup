@@ -53,10 +53,18 @@ if [[ -z "$ROOTLESSKIT_VERSION" ]]; then
     ROOTLESSKIT_VERSION=$(get_latest_tag "rootless-containers/rootlesskit")
 fi
 
+BUILDX_VERSION=$(echo "$MOBY_DOCKERFILE" | sed -n 's/.*BUILDX_VERSION=\([^ ]*\).*/\1/p' | head -1)
+if [[ -z "$BUILDX_VERSION" ]]; then
+    BUILDX_VERSION=$(get_latest_tag "docker/buildx")
+fi
+# moby pins buildx without the leading "v"
+[[ "$BUILDX_VERSION" == v* ]] || BUILDX_VERSION="v${BUILDX_VERSION}"
+
 echo "  containerd:  ${CONTAINERD_VERSION}"
 echo "  runc:        ${RUNC_VERSION}"
 echo "  tini:        ${TINI_VERSION}"
 echo "  rootlesskit: ${ROOTLESSKIT_VERSION}"
+echo "  buildx:      ${BUILDX_VERSION}"
 
 # --- Podman dependency versions ---
 
@@ -89,6 +97,7 @@ CONTAINERD_VERSION=${CONTAINERD_VERSION}
 RUNC_VERSION=${RUNC_VERSION}
 TINI_VERSION=${TINI_VERSION}
 ROOTLESSKIT_VERSION=${ROOTLESSKIT_VERSION}
+BUILDX_VERSION=${BUILDX_VERSION}
 
 # Compose
 COMPOSE_VERSION=${COMPOSE_VERSION}

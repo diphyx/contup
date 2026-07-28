@@ -7,6 +7,7 @@ set -euo pipefail
 
 RUNTIME="${RUNTIME:-both}"
 COMPOSE="${COMPOSE:-true}"
+BUILDX="${BUILDX:-true}"
 BIN_DIR="/usr/local/bin"
 
 pass=0
@@ -37,6 +38,12 @@ if [[ "$RUNTIME" != "podman" ]]; then
        "$BIN_DIR/"
     chmod +x "$BIN_DIR"/{docker,dockerd,docker-proxy,containerd,containerd-shim-runc-v2,runc,docker-init}
     chmod +x "$BIN_DIR"/{rootlesskit,dockerd-rootless.sh}
+
+    if [[ "$BUILDX" != "false" ]]; then
+        echo "==> Installing Buildx binary..."
+        cp /tmp/buildx/docker-buildx "$BIN_DIR/"
+        chmod +x "$BIN_DIR"/docker-buildx
+    fi
 fi
 
 # ─── Install Compose binary ───
@@ -64,6 +71,11 @@ if [[ "$RUNTIME" != "podman" ]]; then
     if [[ "$COMPOSE" != "false" ]]; then
         mkdir -p /usr/local/lib/docker/cli-plugins
         ln -sf "$BIN_DIR/docker-compose" /usr/local/lib/docker/cli-plugins/docker-compose
+    fi
+
+    if [[ "$BUILDX" != "false" ]]; then
+        mkdir -p /usr/local/lib/docker/cli-plugins
+        ln -sf "$BIN_DIR/docker-buildx" /usr/local/lib/docker/cli-plugins/docker-buildx
     fi
 
     mkdir -p /etc/docker
@@ -132,6 +144,15 @@ if [[ "$RUNTIME" != "podman" ]]; then
     run_test "docker run" docker run --rm hello-world
     if [[ "$COMPOSE" != "false" ]]; then
         run_test "docker compose" docker compose version
+    fi
+    if [[ "$BUILDX" != "false" ]]; then
+        mkdir -p /tmp/buildx-test
+        cat > /tmp/buildx-test/Dockerfile <<'EOF'
+FROM alpine
+RUN echo "dockpod buildx ok"
+EOF
+        run_test "docker buildx build" docker buildx build -t dockpod-buildx-test /tmp/buildx-test
+        rm -rf /tmp/buildx-test
     fi
 
     docker system prune -af &>/dev/null || true

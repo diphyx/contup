@@ -38,6 +38,8 @@ Use `publish.sh` to bump the version and optionally trigger a CI workflow:
 |          | 2      | podman |
 | Compose  | 0      | true   |
 |          | 1      | false  |
+| Buildx   | 0      | true   |
+|          | 1      | false  |
 
 ---
 
@@ -61,6 +63,7 @@ The build pipeline is fully automated via GitHub Actions with three workflows:
 | `platform` | `both`, `amd64`, `arm64`   | `both`  | Target architecture platform |
 | `runtime`  | `both`, `docker`, `podman` | `both`  | Container runtime target     |
 | `compose`  | `true`, `false`            | `true`  | Include Docker Compose       |
+| `buildx`   | `true`, `false`            | `true`  | Include Docker Buildx        |
 
 ### Pipeline Stages
 
@@ -83,7 +86,7 @@ Build                          Verify                    Release
 
 - Docker CLI, dockerd, containerd, runc, tini, rootlesskit
 - conmon, podman, netavark, aardvark-dns
-- Docker Compose
+- Docker Compose, Docker Buildx
 
 **Pre-built static binaries from GitHub Releases:**
 

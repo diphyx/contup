@@ -57,6 +57,7 @@ sed -i.bak \
     -e "s|Docker-v[0-9]*\.[0-9]*\.[0-9]*-blue|Docker-${DOCKER_VERSION}-blue|" \
     -e "s|Podman-v[0-9]*\.[0-9]*\.[0-9]*-purple|Podman-${PODMAN_VERSION}-purple|" \
     -e "s|Compose-v[0-9]*\.[0-9]*\.[0-9]*-blue|Compose-${COMPOSE_VERSION}-blue|" \
+    -e "s|Buildx-v[0-9]*\.[0-9]*\.[0-9]*-blue|Buildx-${BUILDX_VERSION}-blue|" \
     README.md
 rm -f README.md.bak
 
@@ -117,13 +118,23 @@ if [[ "$action" == "2" ]]; then
         1) COMPOSE="false" ;; *) COMPOSE="true" ;;
     esac
 
+    echo ""
+    echo "  0) true"
+    echo "  1) false"
+    echo ""
+    read -rp "Include buildx [0-1]: " b
+    case "${b:-0}" in
+        1) BUILDX="false" ;; *) BUILDX="true" ;;
+    esac
+
     gh workflow run build.yml \
         -f version="$TAG" \
         -f platform="$PLATFORM" \
         -f runtime="$RUNTIME" \
-        -f compose="$COMPOSE"
+        -f compose="$COMPOSE" \
+        -f buildx="$BUILDX"
     echo ""
-    echo "==> Triggered build workflow (${PLATFORM}, ${RUNTIME}, compose=${COMPOSE})"
+    echo "==> Triggered build workflow (${PLATFORM}, ${RUNTIME}, compose=${COMPOSE}, buildx=${BUILDX})"
 elif [[ "$action" == "3" ]]; then
     gh workflow run release.yml -f version="$TAG"
     echo "==> Triggered release workflow"

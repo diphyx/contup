@@ -8,6 +8,7 @@ set -euo pipefail
 
 RUNTIME="${RUNTIME:-both}"
 COMPOSE="${COMPOSE:-true}"
+BUILDX="${BUILDX:-true}"
 
 download_source() {
     local org_repo="$1" tag="$2" dest="$3"
@@ -136,6 +137,17 @@ CGO_ENABLED=0 GOOS=linux go build -o rootlesskit ./cmd/rootlesskit
 echo "  Copying dockerd-rootless.sh..."
 cp /tmp/moby/contrib/dockerd-rootless.sh /tmp/dockerd-rootless.sh
 chmod +x /tmp/dockerd-rootless.sh
+
+# buildx (Docker CLI plugin)
+if [[ "$BUILDX" != "false" ]]; then
+echo "  Building buildx..."
+download_source docker/buildx "$BUILDX_VERSION" /tmp/buildx
+cd /tmp/buildx
+BUILDX_GITCOMMIT=$(get_commit_sha docker/buildx "$BUILDX_VERSION")
+CGO_ENABLED=0 GOOS=linux go build -mod=vendor -trimpath \
+    -ldflags "-X github.com/docker/buildx/version.Version=${BUILDX_VERSION} -X github.com/docker/buildx/version.Revision=${BUILDX_GITCOMMIT}" \
+    -o docker-buildx ./cmd/buildx
+fi
 fi
 
 # ─── Compose ───

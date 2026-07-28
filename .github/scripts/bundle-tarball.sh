@@ -8,6 +8,7 @@ RELEASE_TAG="${1:?Usage: bundle-tarball.sh <release-tag> <arch> [runtime]}"
 ARCH="${2:?Usage: bundle-tarball.sh <release-tag> <arch> [runtime]}"
 RUNTIME="${3:-both}"
 COMPOSE="${4:-true}"
+BUILDX="${5:-true}"
 
 BUNDLE="/tmp/dockpod-bundle"
 
@@ -30,6 +31,12 @@ cp /tmp/tini/docker-init                           "${BUNDLE}/docker/"
 cp /tmp/rootlesskit/rootlesskit                    "${BUNDLE}/docker-rootless/"
 cp /tmp/dockerd-rootless.sh                        "${BUNDLE}/docker-rootless/"
 cp /tmp/slirp4netns/slirp4netns                    "${BUNDLE}/docker-rootless/"
+fi
+
+# Buildx
+if [[ "$RUNTIME" != "podman" && "$BUILDX" != "false" ]]; then
+mkdir -p "${BUNDLE}/buildx"
+cp /tmp/buildx/docker-buildx                       "${BUNDLE}/buildx/"
 fi
 
 # Compose

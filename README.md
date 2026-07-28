@@ -4,6 +4,7 @@
 [![Docker](https://img.shields.io/badge/Docker-v29.4.3-blue)](https://github.com/moby/moby)
 [![Podman](https://img.shields.io/badge/Podman-v5.8.2-purple)](https://github.com/containers/podman)
 [![Compose](https://img.shields.io/badge/Compose-v5.1.3-blue)](https://github.com/docker/compose)
+[![Buildx](https://img.shields.io/badge/Buildx-v0.35.0-blue)](https://github.com/docker/buildx)
 
 > **dock**er + **pod**man, quick setup — Prebuilt container runtime binaries for Linux with an interactive installer.
 
@@ -51,6 +52,7 @@ No repos. No dependencies. No distro-specific packages. Just **static binaries**
 - 🎯 Interactive arrow-key menu for runtime selection
 - ⚙️ Automatic systemd service configuration
 - 🔌 Docker Compose as both standalone binary and CLI plugin
+- 🏭 Optional Docker Buildx (BuildKit) CLI plugin via `--with-buildx`
 - ✅ Checksum verification for downloaded tarballs
 - 📦 Offline installation from bundled tarballs
 
@@ -133,6 +135,7 @@ dockpod <command> [runtime] [flags]
 | `--offline`       | Use bundled binaries only (no download)     |
 | `--no-start`      | Skip starting services after install/update |
 | `--no-verify`     | Skip verification after install/update      |
+| `--with-buildx`   | Install Buildx as Docker CLI plugin         |
 | `-v`, `--version` | Show version                                |
 | `-h`, `--help`    | Show help                                   |
 
@@ -141,6 +144,9 @@ dockpod <command> [runtime] [flags]
 ```bash
 # Install Docker with Compose (interactive)
 dockpod install docker
+
+# Install Docker with Compose and Buildx
+dockpod install docker --with-buildx
 
 # Install Podman non-interactively
 dockpod install podman -y
@@ -236,6 +242,14 @@ When run as a regular user, dockpod installs to:
 | `docker-compose` | [docker/compose](https://github.com/docker/compose) |
 
 > Installed as a standalone binary and as a Docker CLI plugin (`docker compose`). Works with both Docker and Podman — when Podman is installed, dockpod automatically creates a `podman-compose` symlink to `docker-compose`.
+
+### 🏭 Buildx
+
+| Binary          | Source                                            |
+| --------------- | ------------------------------------------------- |
+| `docker-buildx` | [docker/buildx](https://github.com/docker/buildx) |
+
+> Docker-only and **opt-in** — pass `--with-buildx` to `dockpod install docker` (or `dockpod update --with-buildx` to add it later). Installed as a Docker CLI plugin (`docker buildx`, `docker bake`). The default `docker` builder driver uses the BuildKit engine embedded in `dockerd`, so no extra images are pulled. The `docker-container` driver and cross-platform builds need network access (`moby/buildkit`, `tonistiigi/binfmt`). Podman has its own builder — buildx is skipped for Podman installs.
 
 ---
 

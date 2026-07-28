@@ -25,6 +25,7 @@ Prebuilt static container runtime binaries for Linux.
 | 🐳 Docker | \`${DOCKER_VERSION}\` |
 | 🦭 Podman | \`${PODMAN_VERSION}\` |
 | 🔌 Compose | \`${COMPOSE_VERSION}\` |
+| 🔨 Buildx | \`${BUILDX_VERSION}\` |
 
 ### 📥 Download
 

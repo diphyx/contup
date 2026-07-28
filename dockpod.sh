@@ -62,6 +62,8 @@ FLAG_OFFLINE=false
 FLAG_NO_START=false
 FLAG_NO_VERIFY=false
 FLAG_BUILDX=false
+FLAG_COMPOSE=true
+FLAG_COMPOSE_SET=false
 
 ## UI
 
@@ -1324,6 +1326,26 @@ cmd_install() {
         *) die "Unknown runtime: ${runtime}. Use: docker, podman, or both" ;;
     esac
 
+    # Optional components — prompt only when interactive and not preset by flags
+    if [[ "$FLAG_YES" != true && -t 0 ]]; then
+        if [[ "$FLAG_COMPOSE_SET" != true ]]; then
+            local compose_choice
+            select_menu "Install Compose?" compose_choice \
+                "yes" "Adds 'docker compose' / 'podman-compose' (default)" \
+                "no"  "Runtime only"
+            if [[ "$compose_choice" == "no" ]]; then FLAG_COMPOSE=false; fi
+        fi
+
+        # Buildx is Docker-only
+        if [[ "$FLAG_BUILDX" != true ]] && [[ "$runtime" == "docker" || "$runtime" == "both" ]]; then
+            local buildx_choice
+            select_menu "Install Buildx (Docker CLI plugin)?" buildx_choice \
+                "no"  "Skip (default)" \
+                "yes" "Adds 'docker buildx' — multi-platform builds"
+            if [[ "$buildx_choice" == "yes" ]]; then FLAG_BUILDX=true; fi
+        fi
+    fi
+
     # Step 3 — Conflict Check
     print_step "3" "Conflict Check"
 
@@ -1434,9 +1456,10 @@ cmd_install() {
         fi
     fi
 
-    # Always install compose
-    print_info "Installing Compose..."
-    install_binaries "$src_dir" "compose"
+    if [[ "$FLAG_COMPOSE" == true ]]; then
+        print_info "Installing Compose..."
+        install_binaries "$src_dir" "compose"
+    fi
 
     # Install dockpod.sh itself
     install_self "$src_dir"
@@ -1463,7 +1486,9 @@ cmd_install() {
         fi
     fi
 
-    configure_compose
+    if [[ "$FLAG_COMPOSE" == true ]]; then
+        configure_compose
+    fi
 
     # Step 7 — Start Services
     if [[ "$FLAG_NO_START" != true ]]; then
@@ -1497,7 +1522,9 @@ cmd_install() {
             verify_runtime "podman" || true
         fi
 
-        verify_compose || true
+        if is_runtime_installed compose; then
+            verify_compose || true
+        fi
     fi
 
     # Step 9 — Summary
@@ -1532,7 +1559,9 @@ cmd_install() {
     summary_lines+=("Quick start:")
     if [[ "$runtime" == "docker" || "$runtime" == "both" ]]; then
         summary_lines+=("  docker run -it alpine sh")
-        summary_lines+=("  docker compose up -d")
+        if [[ -n "$compose_ver" ]]; then
+            summary_lines+=("  docker compose up -d")
+        fi
         if [[ -n "$buildx_ver" ]]; then
             summary_lines+=("  docker buildx build .")
         fi
@@ -1763,11 +1792,13 @@ cmd_update() {
         print_ok "${rt}: ${old_ver:-unknown} → ${new_ver:-unknown}"
     done
 
-    # Update compose
+    # Update compose — only if already installed, or requested with --with-compose
     if [[ -d "${src_dir}/compose" ]]; then
-        install_binaries "$src_dir" "compose"
-        install_cli_plugins
-        print_ok "Compose updated"
+        if is_runtime_installed compose || [[ "$FLAG_COMPOSE_SET" == true && "$FLAG_COMPOSE" == true ]]; then
+            install_binaries "$src_dir" "compose"
+            install_cli_plugins
+            print_ok "Compose updated"
+        fi
     fi
 
     # Update buildx — only if already installed, or requested with --with-buildx
@@ -2267,6 +2298,8 @@ cmd_help() {
     echo "  --no-start       Skip starting services after install/update"
     echo "  --no-verify      Skip verification after install/update"
     echo "  --with-buildx    Install Buildx as Docker CLI plugin (Docker only)"
+    echo "  --with-compose   Install Compose (default; skips the prompt)"
+    echo "  --no-compose     Skip Compose, install the runtime only"
     echo ""
     echo "Examples:"
     echo "  dockpod install docker         Install Docker with Compose"
@@ -2292,6 +2325,8 @@ parse_args() {
             --no-start)     FLAG_NO_START=true ;;
             --no-verify)    FLAG_NO_VERIFY=true ;;
             --with-buildx)  FLAG_BUILDX=true ;;
+            --with-compose) FLAG_COMPOSE=true;  FLAG_COMPOSE_SET=true ;;
+            --no-compose)   FLAG_COMPOSE=false; FLAG_COMPOSE_SET=true ;;
             -h|--help)      command="help" ;;
             -v|--version)   echo "dockpod v${DOCKPOD_VERSION}"; exit 0 ;;
             -*)             die "Unknown flag: $1" ;;

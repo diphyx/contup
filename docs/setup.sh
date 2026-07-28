@@ -5,7 +5,7 @@ set -euo pipefail
 # Prebuilt container runtime binaries + CLI management tool for Linux
 # https://github.com/diphyx/dockpod
 
-DOCKPOD_VERSION="3.1.0 (3190d43)"
+DOCKPOD_VERSION="4.0.0 (5537946)"
 GITHUB_REPO="diphyx/dockpod"
 GITHUB_API="https://api.github.com/repos/${GITHUB_REPO}"
 
@@ -13,6 +13,7 @@ GITHUB_API="https://api.github.com/repos/${GITHUB_REPO}"
 DOCKER_BINARIES="docker dockerd containerd containerd-shim-runc-v2 runc docker-proxy docker-init"
 DOCKER_ROOTLESS_BINARIES="dockerd-rootless.sh rootlesskit slirp4netns"
 COMPOSE_BINARY="docker-compose"
+BUILDX_BINARY="docker-buildx"
 PODMAN_BINARIES="podman crun conmon netavark aardvark-dns slirp4netns fuse-overlayfs"
 
 # Colors
@@ -60,6 +61,7 @@ FLAG_YES=false
 FLAG_OFFLINE=false
 FLAG_NO_START=false
 FLAG_NO_VERIFY=false
+FLAG_BUILDX=false
 
 ## UI
 
@@ -381,6 +383,14 @@ check_existing_install() {
                 return 0
             fi
             ;;
+        buildx)
+            if command -v docker-buildx &>/dev/null; then
+                local ver
+                ver=$(docker-buildx version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
+                echo "buildx:installed:${ver}"
+                return 0
+            fi
+            ;;
     esac
     echo "${runtime}:not_installed"
     return 1
@@ -392,6 +402,7 @@ get_installed_version() {
         docker)  docker --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "" ;;
         podman)  podman --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "" ;;
         compose) docker-compose version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "" ;;
+        buildx)  docker-buildx version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "" ;;
     esac
 }
 
@@ -401,6 +412,7 @@ is_runtime_installed() {
         docker) command -v docker &>/dev/null && command -v dockerd &>/dev/null ;;
         podman) command -v podman &>/dev/null ;;
         compose) command -v docker-compose &>/dev/null ;;
+        buildx)  command -v docker-buildx &>/dev/null ;;
     esac
 }
 
@@ -525,6 +537,10 @@ install_binaries() {
             binaries="$COMPOSE_BINARY"
             src_subdir="compose"
             ;;
+        buildx)
+            binaries="$BUILDX_BINARY"
+            src_subdir="buildx"
+            ;;
         podman)
             binaries="$PODMAN_BINARIES"
             src_subdir="podman"
@@ -576,6 +592,12 @@ install_cli_plugins() {
     if [[ -f "${BIN_DIR}/docker-compose" ]]; then
         ln -sf "${BIN_DIR}/docker-compose" "${CLI_PLUGINS_DIR}/docker-compose"
         print_ok "Compose CLI plugin → docker compose"
+    fi
+
+    # Docker Buildx as CLI plugin
+    if [[ -f "${BIN_DIR}/docker-buildx" ]]; then
+        ln -sf "${BIN_DIR}/docker-buildx" "${CLI_PLUGINS_DIR}/docker-buildx"
+        print_ok "Buildx CLI plugin → docker buildx"
     fi
 }
 
@@ -1143,6 +1165,7 @@ verify_binary() {
         docker)  cmd="docker --version" ;;
         podman)  cmd="podman --version" ;;
         compose) cmd="docker-compose version" ;;
+        buildx)  cmd="docker-buildx version" ;;
     esac
 
     if version=$(eval "$cmd" 2>/dev/null); then
@@ -1199,6 +1222,15 @@ verify_compose() {
         return 0
     fi
     print_fail "compose not working"
+    return 1
+}
+
+verify_buildx() {
+    if command -v docker-buildx &>/dev/null && docker-buildx version &>/dev/null 2>&1; then
+        print_ok "docker-buildx"
+        return 0
+    fi
+    print_fail "buildx not working"
     return 1
 }
 
@@ -1369,11 +1401,25 @@ cmd_install() {
         if [[ "$INSTALL_MODE" == "rootless" ]]; then
             install_binaries "$src_dir" "docker-rootless"
         fi
+
+        # Buildx is Docker-only and opt-in (--with-buildx)
+        if [[ "$FLAG_BUILDX" == true ]]; then
+            if [[ -d "${src_dir}/buildx" ]]; then
+                print_info "Installing Buildx..."
+                install_binaries "$src_dir" "buildx"
+            else
+                print_warn "Buildx not available in this bundle — skipping"
+            fi
+        fi
     fi
 
     if [[ "$runtime" == "podman" || "$runtime" == "both" ]]; then
         print_info "Installing Podman binaries..."
         install_binaries "$src_dir" "podman"
+
+        if [[ "$FLAG_BUILDX" == true && "$runtime" == "podman" ]]; then
+            print_warn "Buildx is Docker-only — skipping"
+        fi
     fi
 
     # Always install compose
@@ -1428,6 +1474,9 @@ cmd_install() {
             verify_binary "docker" || true
             verify_daemon "docker" || true
             verify_runtime "docker" || true
+            if is_runtime_installed buildx; then
+                verify_buildx || true
+            fi
         fi
 
         if [[ "$runtime" == "podman" || "$runtime" == "both" ]]; then
@@ -1443,10 +1492,11 @@ cmd_install() {
     echo ""
     local active
     active=$(get_active_runtime)
-    local docker_ver podman_ver compose_ver
+    local docker_ver podman_ver compose_ver buildx_ver
     docker_ver=$(get_installed_version docker)
     podman_ver=$(get_installed_version podman)
     compose_ver=$(get_installed_version compose)
+    buildx_ver=$(get_installed_version buildx)
 
     local summary_lines=()
     summary_lines+=("Mode:      ${INSTALL_MODE}")
@@ -1460,6 +1510,9 @@ cmd_install() {
     if [[ -n "$compose_ver" ]]; then
         summary_lines+=("Compose:   v${compose_ver}")
     fi
+    if [[ -n "$buildx_ver" ]]; then
+        summary_lines+=("Buildx:    v${buildx_ver}")
+    fi
 
     summary_lines+=("Binaries:  ${BIN_DIR}")
     summary_lines+=("Socket:    ${DOCKER_HOST:-${DOCKER_HOST_SOCKET}}")
@@ -1468,6 +1521,9 @@ cmd_install() {
     if [[ "$runtime" == "docker" || "$runtime" == "both" ]]; then
         summary_lines+=("  docker run -it alpine sh")
         summary_lines+=("  docker compose up -d")
+        if [[ -n "$buildx_ver" ]]; then
+            summary_lines+=("  docker buildx build .")
+        fi
     elif [[ "$runtime" == "podman" ]]; then
         summary_lines+=("  podman run -it alpine sh")
     fi
@@ -1517,6 +1573,12 @@ cmd_uninstall() {
             rm -f "${BIN_DIR}/${bin}"
         done
         print_ok "Removed Docker binaries"
+
+        if [[ -f "${BIN_DIR}/${BUILDX_BINARY}" ]]; then
+            rm -f "${BIN_DIR}/${BUILDX_BINARY}"
+            rm -f "${CLI_PLUGINS_DIR}/${BUILDX_BINARY}"
+            print_ok "Removed Buildx"
+        fi
     fi
     if [[ "$runtime" == "podman" || "$runtime" == "both" ]]; then
         for bin in $PODMAN_BINARIES; do
@@ -1694,6 +1756,15 @@ cmd_update() {
         install_binaries "$src_dir" "compose"
         install_cli_plugins
         print_ok "Compose updated"
+    fi
+
+    # Update buildx — only if already installed, or requested with --with-buildx
+    if [[ -d "${src_dir}/buildx" ]] && is_runtime_installed docker; then
+        if is_runtime_installed buildx || [[ "$FLAG_BUILDX" == true ]]; then
+            install_binaries "$src_dir" "buildx"
+            install_cli_plugins
+            print_ok "Buildx updated"
+        fi
     fi
 
     # Update dockpod.sh itself
@@ -1906,6 +1977,29 @@ COMPOSEYML
             print_warn "compose — not available, skipped"
         fi
 
+        # Test 5: buildx build (docker only)
+        if [[ "$rt" == "docker" ]]; then
+            if command -v docker-buildx &>/dev/null; then
+                local buildx_dir
+                buildx_dir=$(mktemp -d /tmp/dockpod-test.XXXXXX)
+                cat > "${buildx_dir}/Dockerfile" <<'DOCKERFILE'
+FROM alpine
+RUN echo "dockpod buildx ok"
+DOCKERFILE
+                if err=$(docker buildx build -t dockpod-buildx-test "$buildx_dir" 2>&1); then
+                    print_ok "buildx build"
+                    ((pass++)) || true
+                else
+                    print_fail "buildx build — ${err##*$'\n'}"
+                    ((fail++)) || true
+                fi
+                docker rmi -f dockpod-buildx-test &>/dev/null 2>&1 || true
+                rm -rf "$buildx_dir"
+            else
+                print_warn "buildx — not available, skipped"
+            fi
+        fi
+
         # Cleanup
         print_dim "Cleaning up test artifacts..."
         $cmd rmi hello-world alpine nginx nginx:alpine &>/dev/null 2>&1 || true
@@ -1958,6 +2052,15 @@ cmd_status() {
         lines+=("$(printf "Compose:   v%-10s %b${S_OK} installed%b" "${ver:-?}" "$C_GREEN" "$C_RESET")")
     else
         lines+=("Compose:   not installed")
+    fi
+
+    # Buildx
+    if is_runtime_installed buildx; then
+        local ver
+        ver=$(get_installed_version buildx)
+        lines+=("$(printf "Buildx:    v%-10s %b${S_OK} installed%b" "${ver:-?}" "$C_GREEN" "$C_RESET")")
+    else
+        lines+=("Buildx:    not installed")
     fi
 
     # Podman
@@ -2067,6 +2170,20 @@ cmd_info() {
     fi
     lines+=("")
 
+    # Buildx info
+    if is_runtime_installed buildx; then
+        local ver builder
+        ver=$(get_installed_version buildx)
+        lines+=("Buildx:         v${ver}")
+        if is_runtime_running docker; then
+            builder=$(docker buildx inspect 2>/dev/null | awk -F':[[:space:]]*' '/^Name:/{if (n == "") n=$2} /^Driver:/{if (d == "") d=$2} END{if (n != "") print n" ("d")"}')
+            lines+=("  Builder:      ${builder:-unknown}")
+        fi
+    else
+        lines+=("Buildx:         not installed")
+    fi
+    lines+=("")
+
     # Podman info
     if is_runtime_installed podman; then
         local ver state
@@ -2137,9 +2254,12 @@ cmd_help() {
     echo "  --offline        Use bundled binaries only (no download)"
     echo "  --no-start       Skip starting services after install/update"
     echo "  --no-verify      Skip verification after install/update"
+    echo "  --with-buildx    Install Buildx as Docker CLI plugin (Docker only)"
     echo ""
     echo "Examples:"
     echo "  dockpod install docker         Install Docker with Compose"
+    echo "  dockpod install docker --with-buildx"
+    echo "                                 Install Docker with Compose and Buildx"
     echo "  dockpod install podman -y      Install Podman non-interactively"
     echo "  dockpod switch podman          Switch DOCKER_HOST to Podman"
     echo "  dockpod update                 Update all installed runtimes"
@@ -2159,6 +2279,7 @@ parse_args() {
             --offline)      FLAG_OFFLINE=true ;;
             --no-start)     FLAG_NO_START=true ;;
             --no-verify)    FLAG_NO_VERIFY=true ;;
+            --with-buildx)  FLAG_BUILDX=true ;;
             -h|--help)      command="help" ;;
             -v|--version)   echo "dockpod v${DOCKPOD_VERSION}"; exit 0 ;;
             -*)             die "Unknown flag: $1" ;;

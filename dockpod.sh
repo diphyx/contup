@@ -631,11 +631,23 @@ EOF
 
 write_registries_conf() {
     local dir="$1"
-    [[ -f "${dir}/registries.conf" ]] && return
-    cat > "${dir}/registries.conf" <<'EOF'
+    local file="${dir}/registries.conf"
+
+    if [[ -f "$file" ]]; then
+        # Podman refuses to run at all when registries.conf is still in the
+        # legacy v1 format, which older distro packages leave behind
+        if grep -qE '^[[:space:]]*\[registries\.(search|insecure|block)\]' "$file"; then
+            mv "$file" "${file}.v1.bak"
+            print_warn "Replaced v1 registries.conf (backup: ${file}.v1.bak)"
+        else
+            return
+        fi
+    fi
+
+    cat > "$file" <<'EOF'
 unqualified-search-registries = ["docker.io"]
 EOF
-    print_ok "Created ${dir}/registries.conf"
+    print_ok "Created ${file}"
 }
 
 write_storage_conf() {
